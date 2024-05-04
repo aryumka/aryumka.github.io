@@ -1,0 +1,39 @@
+---
+title: "[TIL] 인텔리제이 gradle 빌드 오류(feat. JDK 버젼 호환)"
+categories: dev
+tags: [TIL, Spring]
+series: ''
+cover: ''
+image: 'https://velog.velcdn.com/images/aryumka/post/14ac2014-f469-4a23-b3cd-d95c2e912efe/image.png'
+comments: true
+draft: false
+hide: false
+---
+
+>Could not open init generic class cache for initialization script '{USERPROFILE}\AppData\Local\Temp\wrapper_init.gradle' ({USERPROFILE}\.gradle\caches\7.4.2\scripts\...).
+> BUG! exception in phase 'semantic analysis' in source unit '_BuildScript_' Unsupported class file major version 63
+
+jdk19로 새로운 프로젝트를 만들 때마다 위처럼 gradle이 빌드가 안되는 문제가 발생했다.
+현재 그래들의 버젼과 jdk 버젼이 맞지 않아서 발생한 문제이다.
+[각 자바 버젼과 호환되는 gradle이 각각 존재한다.](https://docs.gradle.org/current/userguide/compatibility.html) 내 경우 문제가 되었던 19버젼은 최소 gradle 7.6 이상에서 빌드되지만 오류 메시지와 같이 7.4에서는 빌드되지 않는다.
+**사용중인 sdk에 맞는 적절한 gradle 버젼을 명시해주자.**
+
+인텔리제이에서는 그래들의 실행환경을 설정할 수 있는데
+![](https://velog.velcdn.com/images/aryumka/post/14ac2014-f469-4a23-b3cd-d95c2e912efe/image.png)
+여기서 gradle 빌드 스크립트에 정의된 wrapper를 사용한다고 설정하면 인텔리제이에서 자동으로 생성해준 셸스크립트에 설정된 gradle-wrapper를 사용한다.
+```
+CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
+```
+이 wrapper는 같은 디렉토리의 gradle-wrapper.properties를 참조하여 작업을 실행한다. 필요 시 gradle-wrapper.properties의 distributionUrl에 정의된 gradle을 미리 다운받아오기도 한다. 
+
+>![](https://velog.velcdn.com/images/aryumka/post/031aa88c-4a40-4903-91c1-213007e9f791/image.png)
+[gradle 공식 홈페이지](https://docs.gradle.org/current/userguide/gradle_wrapper.html)에서 가져온 gradle wrapper 작동 순서
+
+
+헷갈렸던 점은 버젼이 다르지만 터미널에서 아래 명령어를 실행하면 빌드에 성공했던 점이었다.
+
+```shell
+$ ./gradlew build
+```
+
+이유는 터미널에서는 내 PC에 환경변수로 설정한 Jdk11을 사용했고 정의한 gradle 버젼에 호환이 되었기 때문에 빌드 자체는 성공한 것이었다(아무것도 들어있지 않은 깡통 프로젝트였으므로). 하지만 만약 11에서 지원하지 않는 라이브러리를 사용해 코드를 작성했다면 컴파일 오류가 났을 것이고 빌드가 되었더라도 런타임 오류가 발생했을 것이다.

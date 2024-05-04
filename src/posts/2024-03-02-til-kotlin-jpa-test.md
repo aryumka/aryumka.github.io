@@ -1,0 +1,69 @@
+---
+title: "[TIL] Kotlin + JPA + Kotest + H2 DB"
+categories: dev
+tags: [TIL, Kotlin, JPA, Test, Kotest, H2]
+series: ''
+cover: ''
+image: 'https://velog.velcdn.com/images/aryumka/post/af776ead-b672-4d57-80bb-fe6fac180764/image.png'
+comments: true
+draft: false
+hide: false
+---
+
+## 1. Kotlin의 data class는 JPA에서 사용하지 않는다
+영속성 계층의 `Entity`가 되려면 아래를 포함한 조건이 갖춰져야 한다.
+>- non-final 최상위 클래스이거나 정적 이너클래스일 것
+- public 또는 protected, no-args 생성자를 가질 것
+- final 메서드나 persistent한 인스턴스 변수를 가지지 않을 것
+...
+(이하 생략)
+>
+>[출처: javadoc - jakarta.persistence.entity](https://jakarta.ee/specifications/persistence/3.2/apidocs/jakarta.persistence/jakarta/persistence/entity)
+
+`JPA`는 객체의 상태 변경을 기본 전제로 만들어진 패러다임이다.
+반면 함수형을 지향하는 코틀린에서는 기본 속성이 `val(read-only)` 즉 `immutable`인 것을 전제로 한다.
+
+내 경우 `Entity`를 기본 속성이 `val(read-only)`로 설정되는 `data class`로 설계했다가 모두 `var`을 가진 일반 클래스로 바꿔야 했다. 수정자가 추가되며 리턴타입도 `copy`된 객체를 리턴하던 것이 `void`로 바뀌었고 테스트도 모두 바꿔야 했다.
+
+이는 [스프링 공식 가이드](https://spring.io/guides/tutorials/spring-boot-kotlin)에도 기술된 바이다.
+`Spring Data JPA`가 아닌 다른 `Spring Data`의 경우 data class의 사용이 문제되지 않는다고 한다.
+>![](https://velog.velcdn.com/images/aryumka/post/af776ead-b672-4d57-80bb-fe6fac180764/image.png)
+
+
+위 가이드의 샘플 코드에서 속성들의 접근제어자는 그냥 디폴트이다. 그래서 나도 따로 private var로 만들지는 않았다. 검색을 해봐도 많은 경우 Entity의 속성을 private으로 따로 지정하지 않는 것 같았다. 조금 의아하지만 일단 공식문서에 기술된 대로 따라보기로 했다.
+
+그리고 그래들 플러그인을 다음과 같이 추가해주었다.
+```kotlin
+plugins {
+  kotlin("plugin.allopen") version "1.9.22"
+  kotlin("plugin.noarg") version "1.9.22"
+}
+
+allOpen {
+  annotation("jakarta.persistence.Entity")
+  annotation("jakarta.persistence.Embeddable")
+  annotation("jakarta.persistence.MappedSuperclass")
+}
+```
+매 엔티티 클래스마다 `open`을 선언해주거나 no-arg 생성자를 만들지 않아도 영속성 `Entity`가 될 수 있도록 해준다.
+> ![](https://velog.velcdn.com/images/aryumka/post/d01091b3-9e97-4b7f-872e-34a63f9fbbdb/image.png)
+별도로 지정해주지 않아도 `open class`로 바뀌어있다
+
+`data class`일 때는 자동으로 만들어줬던 `hashcode`와 `equals`, `toString`은 직접 구현해줘야 했다.
+
+
+## 2. Key Generation?
+
+`insert` 하기 전에 `select`가 실행되지만 실제 쿼리가 실행되는 건 아니다.
+`insert` 후 `select`를 실행하면 영속성 계층에 `select`하는 대상의 id를 가진 객체가 있는지 먼저 탐색한다고 한다. 
+`GenerationType.SEQUENCE` 전략으로 키를 생성하기로 했다.
+하지만 매번 키 탐색을 위해 DB를 다녀오는게 이상하다. 기본적으로 50개가 할당된다고 들었는데.
+
+그런데 키 생성전략을 위해서는 이렇게 DB를 이용하는게 최선일까?
+좋은 방법이 있을 것 같은데.
+
+## 3. H2 DB와 테스트 환경
+
+`H2 db`로 테스트하면 매 테스트마다 롤백이 된다고 한다. 즉 실제 DB에 들어가지 않는다는 말이다.
+테스트마다 아이디를 일부러 중복으로 넣어도 무결성 에러도 나지 않고 디버깅으로 멈춰 놓고 콘솔에 접속해도 아무것도 없어서 어리둥절했다. 
+그럼 DB가 초기화될 때 DDL도 실행되지 않는 것인가..?

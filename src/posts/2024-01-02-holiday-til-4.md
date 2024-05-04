@@ -1,0 +1,83 @@
+---
+title: "[연휴개발TIL] DAY3"
+categories: dev
+tags: [TIL, AWS, Actions]
+series: ''
+cover: ''
+image: 'https://velog.velcdn.com/images/aryumka/post/3e146a87-d66d-4ff3-953f-9da5e5c92441/image.png'
+comments: true
+draft: false
+hide: false
+---
+
+![](https://velog.velcdn.com/images/aryumka/post/5bcf0cef-b279-41be-91fd-b353cda4b285/image.png)
+서버 인스턴스 이미지 - 아마존 리눅스
+key 파일 - .pem으로 생성
+인스턴스 유형 - t2 micro (이유: 프리티어이고 제일 쌈)
+이렇게 대부분 설정은 디폴트로 생성.
+![](https://velog.velcdn.com/images/aryumka/post/77d1fad1-4b21-48f8-83e3-9ed1c7e93fff/image.png)
+인스턴스 생성이 잘 되었다.
+
+다음은 키, ip, user 등의 서버정보를 숨기기 위해 깃헙 settings > security에서 키 설정
+![](https://velog.velcdn.com/images/aryumka/post/efd37719-bf23-4f0d-b8f7-85cc358792a8/image.png)
+두 가지 secrets 변수를 설정할 수 있다.
+- Environment secrets
+prd, stg 등 배포 환경에 따라 설정 가능(이미지에서는 key로 설정)
+- Repository secrets
+저장소에서 공유되는 변수.
+![](https://velog.velcdn.com/images/aryumka/post/d80dee44-3a42-4ce3-a623-d7436eef8ae0/image.png)
+
+다음은 이렇게 설정한 정보로 워크플로우 .yml 파일에 deploy job 작성
+```yml
+  deploy:
+    environment: key
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: result
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.5.4
+        with:
+          ssh-private-key: ${{ secrets.KEY }}
+      - name: SCP transfer
+        run: scp *.jar ${{ secrets.USER }}@${{ secrets.IP }}:~/
+      - name: Execute remote commands
+        run: |
+          ssh ${{ secrets.USER }}@${{ secrets.IP }} "sudo fuser -k 8080/tcp"
+          ssh ${{ secrets.USER }}@${{ secrets.IP }} "sudo nohup java -jar ~/*.jar &"
+```
+먼저 job의 environment로 설정한 환경변수 이름을 넣어준다.
+
+build된 결과물을 action/artifact에서 다운로드 받아서 전송해준다.
+그런데 위의 스크립트에 문제가 있었다.
+ssh에 접속하기 위한 ssh-agent action에서 Host key 인증이 실패했다.
+![](https://velog.velcdn.com/images/aryumka/post/39fad39f-a1cc-46be-a6cf-56cf289ab164/image.png)
+
+직접 키파일을 만들어 전송하는 스크립트로 바꿨다.
+```yml
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: result
+      - name: Make pem file
+        run: |
+          echo "$key" >> $HOME/key.pem
+          chmod 400 $HOME/key.pem
+        env:
+          key: ${{secrets.KEY}}
+      - name: SCP transfer
+        run: scp -i $HOME/key.pem -o StrictHostKeyChecking=no *.jar ${{ secrets.USER }}@${{ secrets.IP }}:~/
+      - name: Execute remote commands
+        run: |
+          # ssh -i $HOME/key.pem -o StrictHostKeyChecking=no ${{ secrets.USER }}@${{ secrets.IP }} "sudo fuser -k 8080/tcp" # 임시 주석
+          ssh -i $HOME/key.pem -o StrictHostKeyChecking=no ${{ secrets.USER }}@${{ secrets.IP }} "sudo nohup java -jar ~/*.jar &"
+```
+
+scp option에  -o StrictHostKeyChecking=no를 안붙이니까 안됐다.
+
+![](https://velog.velcdn.com/images/aryumka/post/31658594-e0c1-4858-874c-1c57c0aab139/image.png)
+성공했다.

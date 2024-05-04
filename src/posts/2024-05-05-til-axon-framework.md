@@ -1,0 +1,30 @@
+---
+title: "[TIL] Axon Framework - Token"
+categories: dev
+tags: [TIL, AxonFramework]
+series: ''
+cover: ''
+image: '/images/og.png'
+comments: true
+draft: false
+hide: false
+---
+
+`StreamingEventProcessor`가 `Event Stream`을 열 때 `Token`이 선언되어야 한다.
+
+1. 전체 이벤트 스트림 안에서 특정 이벤트의 위치를 특정하거나 특정한 위치에서 이벤트 스트림을 열기 위해 사용된다.
+2. 추후 스트림을 다시 열 때 마지막 이벤트를 고를 수 있다.
+
+따라서
+- 예상치 못한 셧다운에 마지막 이벤트에 대한 추적이 가능하다.
+- 싱글 스레드에서 특정 이벤트를 처리하도록 보장하거나 여러 스레드에서 - 각 프로세서가 작업을 분배하여 병렬 작업할 수 있도록 한다.
+- 해당 프로세서의 토큰 위치를 조정함으로써 이벤트 replay가 가능하다.
+
+`Token`에 대한 CRUD가 필요하기에 `TrackingTokens`는 `Token Store`에 저장되어야 한다. `Token Store`는 `InMemoryTokenStore`, `JpaTokenStore`, `JdbcTokenStore`, `MongoTokenStore`를 사용할 수 있다.
+
+token을 기준으로 원하는 지점에서 replay할 수도 있다.
+
+`token`을 못찾거나 타임아웃, 예외 등이 발생하면 `token stealing`이 일어날 수 있다.
+롤백이 불가능하다면 이벤트 실행이 멱등성을 가지도록 설계해야 한다.
+
+만약 순서가 보장되고 하나의 스레드에서 처리되어야 하는 작업이라면 `AMQP`를 이용한 `subscribing event processor`를 써야 한다.

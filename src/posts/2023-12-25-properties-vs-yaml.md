@@ -1,0 +1,179 @@
+---
+title: "Properties vs YAML - 스프링부트 외부설정"
+categories: dev
+tags: [Spring]
+series: ''
+cover: ''
+image: 'https://velog.velcdn.com/images/aryumka/post/9173f985-e7b4-4d03-9996-93a08c517845/image.png'
+comments: true
+draft: false
+hide: false
+---
+
+## 개요
+
+스프링부트는 어플리케이션 코드의 변경을 최소화하기 위하여 설정파일, CLI Argument 등 다양한 방법으로 외부 설정을 주입받습니다.
+
+그리고 이러한 외부 설정은 운영, 테스트, 개발 등 실행환경에 따라 달라지게 됩니다.
+이를 위해 프로필 별 설정(Profile-specific Properties)이 필요하게 됩니다. 대개 프로필 별 설정파일을 통해 관리하게 됩니다.
+
+[스프링부트 공식 문서](https://docs.spring.io/spring-boot/docs/current/reference/html/howto.html#howto.properties-and-configuration)에서는 설정 파일을 이용할 때 두 가지 방법을 권장합니다.
+첫 번째로는 전통적인 방식으로 **properties**를 이용하는 방법과 두 번째로는 **yaml** 파일을 이용하는 방법입니다.
+공식 문서의 예제 코드 또한 위 두 가지 방법으로 제공됩니다.
+
+**properties 예시**
+```properties 
+spring.application.name=cruncher
+spring.datasource.driver-class-name=com.mysql.jdbc.Driver
+spring.datasource.url=jdbc:mysql://localhost/test
+server.port=9000
+```
+
+**yaml 예시**
+```yaml 
+spring:
+  application:
+    name: "cruncher"
+  datasource:
+    driver-class-name: "com.mysql.jdbc.Driver"
+    url: "jdbc:mysql://localhost/test"
+server:
+  port: 9000
+```
+
+yaml 파일로 설정 시 장점과 단점은 다음과 같습니다.
+
+## 장점
+
+### 1. 계층적 표현 가능
+
+계층적 표현을 통해 코드의 응집도와 가독성이 증가합니다. 같은 계층의 설정이라면 한 곳에 모아서 관리하기에 용이하며 각 설정의 구조도 한 눈에 파악할 수 있습니다.
+여러 번 반복해 쓸 필요 없이 하위의 각 설정으로 들여쓰기를 이용하여 추가할 수 있습니다.
+특히 어플리케이션이 커지고 설정이 복잡해진 경우 더욱 편리합니다.
+
+### 2. 중복코드 줄여줌
+
+properties로 설정 시 모든 프로필에 동일한 설정이 적용될 경우 각 파일에 반복된 코드를 모두 넣어줘야 합니다.
+하지만 yaml을 이용하면 같은 파일에 `---` 구분자를 넣어 각 프로필을 설정할 수 있습니다. 프로필이 없는 설정, 즉 디폴트 설정은 모든 프로필에 동일하게 적용됩니다.
+아래 예제와 같이 공통으로 관리하는 설정과 각 프로필 별로 달라지는 설정을 나누어 관리할 수 있습니다.
+
+```yaml
+#공통 환경 설정
+server:
+  shutdown: graceful
+  servlet:
+    jsp:
+      init-parameters:
+        mappedfile: false
+  jsp-servlet:
+    init-parameters:
+      development: true
+  max-http-header-size: 2MB
+
+spring:
+  datasource:
+    hikari:
+      max-lifetime: 180000
+      maximum-pool-size: 1
+      minimum-idle: 1
+      idle-timeout: 600000
+      pool-name: Logos-pi
+      connection-test-query: "select 1+1"
+  mvc:
+    view:
+      prefix: /WEB-INF/jsp/
+      suffix: .jsp
+  application:
+    name: ui
+  devtools:
+    livereload:
+      enabled: true
+
+--- #local 환경 설정
+
+spring:
+  profiles:
+    active: local
+  datasource:
+    hikari:
+      jdbc-url: "jdbc:mariadb://127.0.0.1:3306/local?useUnicode=true&characterEncoding=utf8"
+  tomcat:
+    maxActive: 5
+
+server:
+  port: 8011
+
+--- #stg 환경 설정
+spring:
+  profiles: stg
+  server:
+    port: 8011
+    
+--- #prd 환경 설정
+
+server:
+  port: 80
+
+spring:
+  profiles: prd
+  datasource:
+    tomcat:
+      maxActive: 50000
+    hikari:
+      jdbc-url: "jdbc:mariadb://199.999.99.999:3306/prd?useUnicode=true&characterEncoding=utf8"
+```
+
+
+
+### 3. 기타 유용한 장점
+
+**- yml 문법 사용 가능**
+
+yml은 xml, json처럼 데이터를 표현하는 양식이지만 문법은 상대적으로 이해하기 쉽고, 가독성이 좋도록 디자인 되었습니다. 또 모든 데이터를 리스트, 해쉬, 스칼라 데이터의 조합으로 적절히 표현할 수 있다는 믿음을 가지고 만들어졌습니다. 
+![](https://velog.velcdn.com/images/aryumka/post/9173f985-e7b4-4d03-9996-93a08c517845/image.png)
+
+[위키피디아에서 yaml 설명 보기](https://ko.wikipedia.org/wiki/YAML)
+이러한 yml의 문법은 스프링부트의 설정문서에서도 사용할 수 있습니다. 
+
+배열을 예로 들자면 properties 에서는 아래와 같이 표현하던 것들을
+```properties
+my.servers[0]=dev.example.com
+my.servers[1]=another.example.com
+```
+
+yaml에서는 아래와 같이 `-`를 사용하거나
+```
+my:
+servers:
+	- dev.example.com
+	- another.example.com
+```
+또는 이렇게 한 줄로 표현합니다.
+```
+my:
+  servers: [dev.example.com, another.example.com]
+```
+
+자세한 문법은 [yaml 공식문서](https://yaml.org/spec/1.2.2/)또는 구글 검색을 통해 참고 바랍니다.
+
+**- UIF-8 인코딩 지원**
+
+properties파일에 한글을 쓰면 인식을 못하여 글자가 깨지게 됩니다.
+IDE에서 설정하여 깨지지 않도록 하는 방법도 있지만 한 번 깨진 글자를 복구할 순 없습니다.
+yaml은 UTF-8 인코딩을 지원하므로 깨질 걱정 없이 한글로 주석 등을 달 수 있어 편리합니다.
+
+## 단점
+
+### 1. `@PropertySource` 애너테이션 사용 불가능
+
+스프링부트 공식문서에 나와있는 yaml의 단점입니다.
+하지만 `@Value` 애너테이션으로 대체할 수 있으며 설정파일 내 `placeholder`($\{...}) 등 기본적인 사용 방식은 기존 properties와 동일합니다.
+
+
+### 2. 문법이 다소 엄격
+
+개행, 들여쓰기, 띄어쓰기 등을 철저하게 지켜야 합니다.
+특히 특수문자 같은 경우 url 등 일정 형식이 아닌 리터럴(ex. 비밀번호, 이메일)의 경우 리터럴`""` 표시를 확실히 해주어야 합니다.
+`boolean`, `integer`, `float` 등 기본적인 타입은 모두 인식 가능합니다. 
+상식 선에서 따라할 수 있는 것들로 몇 번 작성하면 금방 익숙해질만한 것들입니다.
+

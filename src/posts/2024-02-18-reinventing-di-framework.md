@@ -1,0 +1,316 @@
+---
+title: "[바퀴의 재발명] DI 프레임워크 직접 만들어보기"
+categories: dev
+tags: [Kotlin, DI]
+series: '바퀴의 재발명'
+cover: ''
+image: 'https://velog.velcdn.com/images/aryumka/post/94394c32-2228-4acb-8be0-a82e13fa78a1/image.png'
+comments: true
+draft: false
+hide: false
+---
+
+# DI는 왜 필요할까
+## 개요
+
+`DI`는 의존관계 주입(Dependency Injection)의 줄임말으로 객체지향 디자인패턴 중 하나이다. 
+객체지향 프로그램 내 객체들은 다양한 생명주기를 가지며 서로 상호작용하고 다양한 형태의 의존관계를 갖게 된다. 
+
+> **Dependency?**
+의존관계 혹은 의존성. Dependency를 직역하면 의존성이기도 하고 흔히 이렇게 불리고 있지만 의존관계라는 표현이 더 의미전달에 맞다고 생각하여 (토비의 스프링 참조) 의존관계로 표현한다.
+
+
+코드를 예시로 살펴보자. 아래와 같은 프로그램이 있을 때,
+```java
+class Dog extends Animal {
+	Toy toy;
+    public Dog(Toy toy) {
+    	this.toy = toy;
+    }
+}
+
+interface Toy {
+	/*...*/
+}
+
+class Doll implements Toy {
+	/*...*/
+}
+```
+`Dog`는 `Toy`에 의존관계를 갖고있다. 이제 `Doll`객체를 받아 `Dog`객체를 생성하려면 어떻게 해야 할까?
+
+```java
+Toy doll = new Doll();
+Dog cuteDog = new Dog(doll);
+```
+`Toy`객체를 직접 생성, `Dog`객체가 생성될 때 직접적으로 `Doll`와 의존관계를 맺을수도 있고
+
+```java
+/* 외부 모듈 Injector에 의해 의존관계 주입 */
+/* Config에 Dog와 Doll의 의존관계가 미리 설정되어 있다고 가정한다.*/
+Injector injector = new Injector(Config);
+Dog cuteDog = injector.get(Dog.class)
+```
+외부모듈에 의해 미리 생성된 의존관계를 공급받아 객체를 생성하기도 한다. 후자와 같은 형태를 `DI` 패턴이라고 한다.
+
+그림으로 나타내면 아래와 같다.
+![](https://velog.velcdn.com/images/aryumka/post/7f996a48-7da4-4a94-acd1-336eae84403e/image.png)
+![](https://velog.velcdn.com/images/aryumka/post/0dbb415c-8d11-4398-bb95-7ffec7122e44/image.png)
+
+
+의존관계 **주입**이라는 말에서 알 수 있듯 DI 패턴에서는 객체 **외부의 다른 객체 또는 모듈**이 객체 생성 및 의존관계 설정을 담당한다. 
+**마치 블록을 조립할 때 블록이 아닌 조립하는 사람이 완성된 모양을 결정하는 것처럼 말이다.** 
+
+## DIP(Dependency Inversion Principle): 의존관계 역전 원칙
+
+객체가 자신의 의존관계를 직접 설정하지 않도록 하는 이유가 뭘까?
+객체지향 원칙인 **`SOLID`**를 살펴보자.
+> **S**: 단일 책임 원칙 (Single responsibility principle) - 한 클래스는 하나의 책임만 가져야 한다.
+**O**: 개방-폐쇄 원칙 (Open/closed principle) - “소프트웨어 요소는 확장에는 열려 있으나 변경에는 닫혀 있어야 한다.”
+**L**: 리스코프 치환 원칙 (Liskov substitution principle) - “프로그램의 객체는 프로그램의 정확성을 깨뜨리지 않으면서 하위 타입의 인스턴스로 바꿀 수 있어야 한다.” 계약에 의한 설계를 참고하라.
+**I**: 인터페이스 분리 원칙 (Interface segregation principle) - “특정 클라이언트를 위한 인터페이스 여러 개가 범용 인터페이스 하나보다 낫다.”
+**D**: 의존관계 역전 원칙 (Dependency inversion principle) - 프로그래머는 “추상화에 의존해야지, 구체화에 의존하면 안된다.”
+[출처: 위키피디아](https://ko.wikipedia.org/wiki/SOLID_(%EA%B0%9D%EC%B2%B4_%EC%A7%80%ED%96%A5_%EC%84%A4%EA%B3%84))
+
+이 중 `의존관계 역전 원칙`을 실행하기 위한 방법 중 하나가 DI 패턴이다.
+
+만약 위의 예시 코드에서 `Dog`가 주입받는 `Toy` 객체가 `Doll`이 아니라 `Bone`객체로 바뀐다면 어떻게 될까? 직접 의존관계를 설정한 프로그램이라면 아마도 아래와 같이 구체적 코드를 변경해야 할 것이다.
+```java
+Toy bone = new Bone();
+Dog cuteDog = new Dog(bone);
+```
+자연스럽게 개방-폐쇄 원칙을 위반하게 된다.
+
+반면 DI 패턴이 적용된 구현코드는 수정이 필요없다. 이미 Dog 타입의 객체는 Toy 타입의 인터페이스에 의존하고 있고 Bone과 Doll은 모두 Toy를 구현하고 있기 때문이다. 
+고수준 모듈에서 새로운 구현체를 주입하도록 설정`Config`만 변경해주면 된다. 
+
+이런 의존관계를 설정해주는 고수준 모듈을 손쉽게 사용하기 위해 DI 프레임워크를 사용한다.
+
+# DI 프레임워크
+
+
+![](https://velog.velcdn.com/images/aryumka/post/7f306d31-a0c8-40e8-91b5-6c791b188a07/image.png)
+
+객체지향 패러다임을 포함하는 많은 프레임워크들에서 DI를 제공하고 있다.
+
+대표주자로는 자바(또는 코틀린) 기반 어플리케이션 프레임워크인 `Spring`의 `IoC Container`가 있다. 자바, 안드로이드, 코틀린 네이티브, 코틀린 멀티플랫폼 등 다양한 환경을 지원하는  DI 프레임워크인 `Koin`, `Javascript`에서는 `nest.js` 등이 DI 프레임워크를 제공한다. 
+이러한 프레임워크들에서는 메타데이터를 이용, 의존관계를 주입하거나 객체 생성, 초기화, 사용(조회 등), 객체 소멸 같은 객체의 생명주기를 관리하는 역할을 한다.
+
+이러한 프레임워크들의 동작 원리를 이해하기 위해 `Kontainer`라는 간단한 DI 컨테이너를 만들어보았다.
+## Kontainer 소개
+`Kontainer`는 코틀린으로 작성했다. 
+https://github.com/aryumka/kontainer
+
+메이븐 중앙저장소에 배포되어있다.
+
+상세 내용은 다음과 같다.
+### 1. 컨테이너 구조
+컨테이너는 코틀린의 `object` 클래스를 이용, 싱글톤으로 구현했다. 
+컨테이너가 갖는 필드들은 다음과 같다.
+- 빈들의 메타데이터가 저장되는 `registeredBean`
+- 생성된 빈들이 저장되는 `createdBean`
+- 의존관계 그래프인 `dependencyGraph`
+- 의존관계 그래프의 간선을 저장한 `edges`
+- 각 빈들의 루트 빈의 정보를 저장하는 `rootIndices`, `rootIdxMap` 
+>여기서 빈은 프레임워크에 의해 관리되는 컴포넌트(인스턴스)이다.
+** 컴포넌트와 모듈의 차이: 컴포넌트는 런타임에 동적으로, 모듈은 컴파일 타임에 정적으로 존재한다.
+### 2. 빈 메타데이터 등록
+먼저 `Kontainer`에게 어떤 인스턴스를 생성해야 하는지, 각 인스턴스들의 의존관계가 어떻게 되는지 등을 알려줘야 한다. 즉 데이터(객체)에 대한 데이터, **메타데이터**를 제공해야 한다.
+프로그램을 실행하는 `main` 함수에서 아래와 같이 빈을 등록한다.
+```kotlin
+val kontainer = Kontainer()
+kontainer.register(HelloService::class)
+```
+`register` 함수는 코틀린의 `Reflection` API(리플렉션 설명)를 이용하여 구현하였다.
+```kotlin
+fun register(kClass: KClass<*>) {
+	registeredBean.add(kClass)
+	rootIdxMap[kClass] = registeredBean.size - 1
+}
+```
+빈을 등록하면 `registeredBean`에 해당 객체의 메타데이터 [KClass](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.reflect/-k-class/)가 추가된다. 
+```kotlin
+private val registeredBean = mutableListOf<KClass<*>>() //registeredBean: [class context.HelloService]
+```
+등록과 동시에 해당 빈의 루트를 저장할 `rootIdxMap`에 빈이 추가되는 순서대로 인덱스가 부여된다. 이 인덱스는 의존성 그래프를 그릴 때 사용된다.
+
+`Kontainer`에서는 클래스, 생성자, 필드, 메서드 등 객체로써 메타데이터만 저장하지만 일반적인 DI 프레임워크에는 더 넓은 범위의 설정정보가 필요하다.
+
+컴포넌트로써의 속성, 즉 런타임에 프레임워크 내에서 어떻게 사용되는지에 대한 정보도 필요하기 때문이다. 빈의 생명주기를 결정하는 스코프, 인터페이스 사용 시 구현체 선택 정보 등이 이에 해당한다.
+
+>참고로 `Spring`에서는 프로그램 내 코드 뿐만이 아닌 다양한 외부 설정으로 빈의 메타데이터를 제공할 수 있다.
+`.xml` 또는 `.properties`와 같은 설정파일이나 `Groovy` 스크립트 파일, 코드에 삽입하여 런타임에 설정되도록 하는 `애너테이션` 등등으로 프로그램 구현 로직과 분리된 다양하고 높은 수준의 추상화가 가능하다. 각 설정마다 다른 `ApplicationContext` 구현체로 구현된다.
+
+### 3. 빈 의존관계 설정 및 주입
+`Kontainer`에서는 2에서 등록된 각 빈의 **기본 생성자 파라미터**를 통해 의존관계를 파악하며 이를 의존관계 그래프 `dependencyGraph`로 나타낸다. 
+```kotlin
+private val dependencyGraph = mutableMapOf<KClass<*>, List<KClass<*>>>()
+```
+이후 생성에 필요한 의존관계를 이 `dependencyGraph`에서 찾아 생성과 동시에 주입한다. 
+
+예를 들어 아래와 같은 의존관계를 갖고 있는 클래스들을 등록 `register`했다고 가정하자.
+```kotlin
+class E
+class B
+class C
+class D(val e: E)
+class A(
+	val b: B,
+    val c: C,
+    val d: D
+)
+class G
+class F(val g: G)
+
+val kontainer = Kontainer
+
+kontainer.register(A::class)
+kontainer.register(B::class)
+kontainer.register(C::class)
+kontainer.register(D::class)
+kontainer.register(E::class)
+kontainer.register(F::class)
+kontainer.register(G::class)
+```
+
+다이어그램으로 표현하면 다음과 같다.
+![](https://velog.velcdn.com/images/aryumka/post/fdeb4985-a8bf-4ca8-9754-1b2f2520d9a5/image.png)
+
+`registeredBean`의 메타데이터를 참조하여 기본 생성자 파라미터를 가져와 의존관계 그래프 `dependencyGraph`와 간선정보 `edges`를 세팅한다.
+```kotlin
+private fun setDependencyGraph() {
+	for (bean in registeredBean) {
+    	val constructor = bean.primaryConstructor!!
+        val parameters = constructor.parameters
+        val parameterTypes = parameters.map { it.type.classifier as KClass<*> }
+        dependencyGraph[bean] = parameterTypes
+        
+        for (parameter in parameterTypes) {
+        	edges.add(Pair(bean, parameter))
+        }
+	}
+}
+```
+
+그리고 의존관계 그래프를 탐색하여 순환참조가 발생하는지 확인 한다.
+이를 위해 의존관계에서 가장 상단에 있는 루트 노드를 확인한다.
+먼저 아래와 같이 자기 자신을 루트 노드로 초기화 해준 후
+```kotlin
+private fun initRootIndices() {
+	rootIndices = IntArray(registeredBean.size)
+	for (i in rootIndices.indices) rootIndices[i] = i
+}
+```
+간선 정보를 이용, 빈 등록 시 세팅해주었던 `rootIdxMap`을 함께 이용하여 `UnionFind` 알고리즘을 통해 순환 참조가 있는지 파악한다.
+```kotlin
+private fun unionFind() {
+  for (edge in edges) {
+    val (parent, child) = edge
+    val parentIndex = rootIdxMap[parent]!!
+    val childIndex = rootIdxMap[child]!!
+    
+    for (i in rootIndices.indices) {
+      if (rootIndices[i] == childIndex) {
+	      if (rootIndices[i] == rootIndices[parentIndex]) {
+      		throw CircularDependencyException("Circular Dependency for $parent and $child")
+    	  }
+      rootIndices[i] = rootIndices[parentIndex]
+      }
+    }
+  }
+}
+```
+순환참조가 탐지되지 않았다면 의존관계 그래프에 담겨있는 메타데이터를 참조해 빈을 생성하고 주입한다.
+```kotlin
+private fun createBeans() {
+  for (i in rootIndices.indices) {
+    if (rootIndices[i] == i) {
+	    createBean(registeredBean[i], dependencyGraph[registeredBean[i]]!!)
+    }
+  }
+}
+
+//재귀적으로 탐색하여 아무 객체에도 의존하지 않는 것부터 생성
+private fun createBean(parent: KClass<*>, children:List<KClass<*>>) {
+	for (i in children.indices) {
+		if (!createdBean.containsKey(children[i].simpleName!!) || createdBean[children[i].simpleName!!] == null) {
+			createBean(children[i], dependencyGraph[children[i]]!!)
+		}
+	}
+	createdBean[parent.simpleName!!] = parent.primaryConstructor!!.call(*children.map { createdBean[it.simpleName!!] }.toTypedArray())
+}
+
+```
+
+일반적으로 사용되는 DI 프레임워크들의 경우 기본생성자 외에도 다양한 방법의 DI가 가능하다.
+
+생성자가 여러 개일 때 DI 컨테이너가 어떤 생성자를 사용해야 하는지 알려줄 수도 있으며 생성자 주입이 아닌 생성 이후 `setter` 메서드 등으로 필드 주입을 할수도 있다. 
+
+>필드 주입의 경우 생성 시점과 주입 시점이 다르다. 주입시점에 이미 컨테이너 자신이 생성한 빈을 가져와 주입하며 이 때 주입될 빈이 생성되지 않았다면  `NullPointerException`가 발생한다. 순환참조 관계를 미리 알 수 없으므로 어플리케이션 실행 중 순환참조 문제가 발생할 수도 있다. `Spring`의 경우 공식적으로 생성자 주입을 권장하고 있다.
+
+### 4. 생명주기 관리
+`Kontainer`에서는 `start` 메서드를 통해 모든 빈을 일괄적으로 생성하고 `end` 메서드를 통해 모든 빈을 삭제한다. 이외의 별도의 생명주기 관리는 없다.
+
+일반적인 DI 프레임워크들에서는 단순한 객체 생성 및 의존관계 주입뿐만이 아닌 초기화 또는 파괴(destruct)와 그에 따른 콜백 실행 등 전체 생명주기를 관리한다. 
+
+이러한 생명주기는 각 빈의 스코프에 따라 달라질 수 있다.
+`Kontainer`에서는 오직 싱글톤 인스턴스만 등록할 수 있지만 일반적인 프레임워크들에서는 객체의 목적에 따라 다양한 스코프의 빈을 지원하기도 한다. 
+> `Spring`의 경우 singleton, prototype, request, session, application, websocket [총 6개의 스코프](https://docs.spring.io/spring-framework/reference/core/beans/factory-scopes.html)를 지원한다.
+> `Koin`의 경우 [커스텀 스코프](https://insert-koin.io/docs/reference/koin-core/scopes)를 만들어서 사용할 수 있다.
+
+### 5. 빈 사용
+`Kontainer`에서는 컨테이너 생성 후 등록한 빈을 아래와 같이 가져와 사용한다.
+```kotlin
+val kontainer = Kontainer
+kontainer.register(HelloService::class)
+kontainer.register(HelloDao::class)
+kontainer.start()
+
+val bean = kontainer.getBean<HelloService>("HelloService")
+```
+
+## 보완하고 싶은 점
+- 빈의 이름을 지정하는 `Qualifier`, 스코프 등 빈에 대한 상세한 설정이 필요하다.
+- 빈 설정을 네이티브 코드가 아닌 다양한 방법으로 지원할 수 있다면 좋겠다. 특히 애너테이션을 통한 빈 설정이 최우선순위.
+- 필드 주입 등 다양한 DI 방법을 추가하고 싶다.
+- 추가된 다양한 DI 방법 및 설정에 따라 추상화된 구조를 만들어야 한다.
+- 컨테이너 내 역할에 따른 객체지향적 설계가 필요하다. 현재는 모든 기능이 단일 클래스 안에 구현되어 있다. 
+- 적절한 모듈화가 이루어져야 한다. 예를 들어 빈 등록 같은 설정을 `main`함수에서 호출하는 것보다는 별도의 설정파일에서 설정, `main`에서는 이를 참조만 하는 것이 바람직하다.
+```kotlin
+//koin api 호출 예시
+fun main(vararg args : String){
+    // Start Koin
+    startKoin {
+        modules(myModule)
+    }
+
+    // Create MyComponent instance and inject from Koin container
+    MyComponent()
+}
+
+class MyService
+// 모듈 설정
+val myModule = module {
+    // Define a singleton for MyService
+    single { MyService() }
+}
+```
+- `getBean` 함수에서 타입 파라미터 이외에도 `name: String`을 넣어줘야 한다. 중복적이고 불필요한 코드이므로 개선이 필요하다.
+
+# 마치며
+
+스프링을 처음 배웠을 때의 기억이 아직도 생생하다. 
+이게 뭔지 또 이걸 왜 써야하는지 머릿속에 물음표만이 가득했다. 
+
+이후 실무에서도 숨쉬듯 익숙하게 스프링을 써오면서도 IoC 컨테이너의 동작원리나 근본적인 존재 이유에 대해 생각하면 늘 먹구름이 낀 것처럼 흐릿했다.
+
+직접 DI 컨테이너를 만들어 보고 글로 정리하고 보니 이제야 긴 숙제를 마친 기분이다.
+
+텍스트로만 존재했던 스프링에 대한 파편화된 지식이 이번 경험을 통해 각자의 맥락을 찾아 하나로 연결되어 자리잡을 수 있었다.
+
+당연한 말이지만 세상에 당연히 되는 건 없다. 
+우리가 사용하는 모든 소프트웨어는 마법같이 태어나 존재하는 것이 아니라 우리가 이해할 수 있는 논리와 설계로 이루어진다. 자료구조와 알고리즘이 그 뼈대가 된다는 것도 이번 기회를 통해 직접 피부로 느낄 수 있었다. 
+
+다음 바퀴를 만들 때는 또 무엇을 배울 수 있을지 기대된다.
+
+
