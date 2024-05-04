@@ -1,6 +1,5 @@
 import PostBio from '@components/PostBio';
 import Giscus from '@components/Giscus';
-import SpecialThanks from '@components/SpecialThanks';
 import React from 'react';
 import styled from '@emotion/styled';
 
@@ -21,8 +20,6 @@ const PostFooter = ({ tags, comment }: PostFooterProps) => {
       )}
 
       <PostBio />
-
-      <SpecialThanks />
 
       {comment && (
         <>
