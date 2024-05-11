@@ -10,6 +10,8 @@ draft: false
 hide: false
 ---
 
+import Image from '@components/Image';
+
 ### Github Action - CI
 
 깃허브에서 제공하는 CI/CD 툴이다.
@@ -26,7 +28,9 @@ hide: false
         run: ./gradlew test
 ```
 이렇게 처음 테스트를 실행할 때 ./gradlew 실행이 실패했다. 원인은 접근권한이 없다는 것.
-![](https://velog.velcdn.com/images/aryumka/post/e6075269-05de-4e29-9193-98f4c4bee66c/image.png)
+
+<Image src="https://velog.velcdn.com/images/aryumka/post/e6075269-05de-4e29-9193-98f4c4bee66c/image.png" />
+
 그래서 권한 부여 커맨드를 스텝에 추가해주었다.
 ```yaml
       # Runs a single command using the runners shell

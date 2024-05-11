@@ -10,6 +10,8 @@ draft: false
 hide: false
 ---
 
+import Image from '@components/Image';
+
 # DI는 왜 필요할까
 ## 개요
 
@@ -56,8 +58,8 @@ Dog cuteDog = injector.get(Dog.class)
 
 그림으로 나타내면 아래와 같다.
 
-![](https://velog.velcdn.com/images/aryumka/post/7f996a48-7da4-4a94-acd1-336eae84403e/image.png)
-![](https://velog.velcdn.com/images/aryumka/post/0dbb415c-8d11-4398-bb95-7ffec7122e44/image.png)
+<Image src="https://velog.velcdn.com/images/aryumka/post/7f996a48-7da4-4a94-acd1-336eae84403e/image.png" />
+<Image src="https://velog.velcdn.com/images/aryumka/post/0dbb415c-8d11-4398-bb95-7ffec7122e44/image.png" />
 
 의존관계 **주입**이라는 말에서 알 수 있듯 DI 패턴에서는 객체 **외부의 다른 객체 또는 모듈**이 객체 생성 및 의존관계 설정을 담당한다. 
 **마치 블록을 조립할 때 블록이 아닌 조립하는 사람이 완성된 모양을 결정하는 것처럼 말이다.** 
@@ -89,8 +91,7 @@ Dog cuteDog = new Dog(bone);
 
 # DI 프레임워크
 
-
-![](https://velog.velcdn.com/images/aryumka/post/7f306d31-a0c8-40e8-91b5-6c791b188a07/image.png)
+<Image src="https://velog.velcdn.com/images/aryumka/post/7f306d31-a0c8-40e8-91b5-6c791b188a07/image.png" />
 
 객체지향 패러다임을 포함하는 많은 프레임워크들에서 DI를 제공하고 있다.
 
@@ -175,7 +176,8 @@ kontainer.register(G::class)
 ```
 
 다이어그램으로 표현하면 다음과 같다.
-![](https://velog.velcdn.com/images/aryumka/post/fdeb4985-a8bf-4ca8-9754-1b2f2520d9a5/image.png)
+
+<Image src="https://velog.velcdn.com/images/aryumka/post/fdeb4985-a8bf-4ca8-9754-1b2f2520d9a5/image.png" />
 
 `registeredBean`의 메타데이터를 참조하여 기본 생성자 파라미터를 가져와 의존관계 그래프 `dependencyGraph`와 간선정보 `edges`를 세팅한다.
 ```kotlin

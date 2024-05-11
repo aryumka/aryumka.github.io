@@ -10,6 +10,8 @@ draft: false
 hide: false
 ---
 
+import Image from '@components/Image';
+
 ## 1. Kotlin의 data class는 JPA에서 사용하지 않는다
 영속성 계층의 `Entity`가 되려면 아래를 포함한 조건이 갖춰져야 한다.
 >- non-final 최상위 클래스이거나 정적 이너클래스일 것
@@ -17,7 +19,7 @@ hide: false
 - final 메서드나 persistent한 인스턴스 변수를 가지지 않을 것
 ...
 (이하 생략)
->
+
 >[출처: javadoc - jakarta.persistence.entity](https://jakarta.ee/specifications/persistence/3.2/apidocs/jakarta.persistence/jakarta/persistence/entity)
 
 `JPA`는 객체의 상태 변경을 기본 전제로 만들어진 패러다임이다.
@@ -27,8 +29,8 @@ hide: false
 
 이는 [스프링 공식 가이드](https://spring.io/guides/tutorials/spring-boot-kotlin)에도 기술된 바이다.
 `Spring Data JPA`가 아닌 다른 `Spring Data`의 경우 data class의 사용이 문제되지 않는다고 한다.
->![](https://velog.velcdn.com/images/aryumka/post/af776ead-b672-4d57-80bb-fe6fac180764/image.png)
 
+<Image src="https://velog.velcdn.com/images/aryumka/post/af776ead-b672-4d57-80bb-fe6fac180764/image.png" />
 
 위 가이드의 샘플 코드에서 속성들의 접근제어자는 그냥 디폴트이다. 그래서 나도 따로 private var로 만들지는 않았다. 검색을 해봐도 많은 경우 Entity의 속성을 private으로 따로 지정하지 않는 것 같았다. 조금 의아하지만 일단 공식문서에 기술된 대로 따라보기로 했다.
 
@@ -46,7 +48,9 @@ allOpen {
 }
 ```
 매 엔티티 클래스마다 `open`을 선언해주거나 no-arg 생성자를 만들지 않아도 영속성 `Entity`가 될 수 있도록 해준다.
-> ![](https://velog.velcdn.com/images/aryumka/post/d01091b3-9e97-4b7f-872e-34a63f9fbbdb/image.png)
+
+<Image src="https://velog.velcdn.com/images/aryumka/post/d01091b3-9e97-4b7f-872e-34a63f9fbbdb/image.png" />
+
 별도로 지정해주지 않아도 `open class`로 바뀌어있다
 
 `data class`일 때는 자동으로 만들어줬던 `hashcode`와 `equals`, `toString`은 직접 구현해줘야 했다.

@@ -10,6 +10,8 @@ draft: false
 hide: false
 ---
 
+import Image from '@components/Image';
+
 ## Github actions
 Github과 연동되는 CI/CD 플랫폼. 
 workflow라는 것을 기반으로 빌드, 테스트, 배포 자동화 파이프라인을 구축할 수 있다.
@@ -20,8 +22,9 @@ _ex. pull request 때 마다 빌드하고 테스트하는 worflow, 새로운 rel
 _
 .github/workflows/에 .yml파일을 생성하여 workflow를 정의한다.
 >기본 템플릿을 생성해준다.
->![](https://velog.velcdn.com/images/aryumka/post/952cf23b-36ec-4a6b-9217-1c787e501f68/image.png)
->![](https://velog.velcdn.com/images/aryumka/post/087bf023-0d07-48ad-b50f-b306e7ed37f2/image.png)
+
+<Image src="https://velog.velcdn.com/images/aryumka/post/952cf23b-36ec-4a6b-9217-1c787e501f68/image.png" />
+<Image src="https://velog.velcdn.com/images/aryumka/post/087bf023-0d07-48ad-b50f-b306e7ed37f2/image.png" />
 
 하나의 workflow는 하나 이상의 job으로 구성된다.
 
@@ -70,7 +73,9 @@ runner는 클라우드로 제공이 되며 직접 호스팅하여 on-premise로 
 하나의 스텝에서 실행될 수 있는 어플리케이션이다. 재사용이 가능하기 때문에 CI/CD에 필요한 반복적인 코드를 줄일 수 있다.
 
 직접 액션을 만들수도 있고
-![](https://velog.velcdn.com/images/aryumka/post/07ec2107-424c-4a8c-9c11-005508653ee2/image.png)
+
+<Image src="https://velog.velcdn.com/images/aryumka/post/07ec2107-424c-4a8c-9c11-005508653ee2/image.png" />
+
 [깃헙 액션즈 레파지토리](https://github.com/orgs/actions/repositories) 또는 [깃헙 마켓플레이스](https://github.com/marketplace?type=actions)에서 기존에 만들어진 것을 사용할 수도 있다.
 ```yml
     steps:

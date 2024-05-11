@@ -10,7 +10,9 @@ draft: false
 hide: false
 ---
 
->Could not open init generic class cache for initialization script '\{USERPROFILE}\AppData\Local\Temp\wrapper_init.gradle' (\{USERPROFILE}\.gradle\caches\7.4.2\scripts\...).
+import Image from '@components/Image';
+
+> Could not open init generic class cache for initialization script '\{USERPROFILE}\AppData\Local\Temp\wrapper_init.gradle' (\{USERPROFILE}\.gradle\caches\7.4.2\scripts\...).
 > BUG! exception in phase 'semantic analysis' in source unit '\_BuildScript\_' Unsupported class file major version 63
 
 jdk19로 새로운 프로젝트를 만들 때마다 위처럼 gradle이 빌드가 안되는 문제가 발생했다.
@@ -20,7 +22,7 @@ jdk19로 새로운 프로젝트를 만들 때마다 위처럼 gradle이 빌드�
 
 인텔리제이에서는 그래들의 실행환경을 설정할 수 있는데
 
-![](https://velog.velcdn.com/images/aryumka/post/14ac2014-f469-4a23-b3cd-d95c2e912efe/image.png)
+<Image src="https://velog.velcdn.com/images/aryumka/post/14ac2014-f469-4a23-b3cd-d95c2e912efe/image.png" />
 
 여기서 gradle 빌드 스크립트에 정의된 wrapper를 사용한다고 설정하면 인텔리제이에서 자동으로 생성해준 셸스크립트에 설정된 gradle-wrapper를 사용한다.
 
@@ -30,7 +32,7 @@ CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
 
 이 wrapper는 같은 디렉토리의 gradle-wrapper.properties를 참조하여 작업을 실행한다. 필요 시 gradle-wrapper.properties의 distributionUrl에 정의된 gradle을 미리 다운받아오기도 한다. 
 
->![](https://velog.velcdn.com/images/aryumka/post/031aa88c-4a40-4903-91c1-213007e9f791/image.png)
+<Image src="https://velog.velcdn.com/images/aryumka/post/031aa88c-4a40-4903-91c1-213007e9f791/image.png" />
 
 [gradle 공식 홈페이지](https://docs.gradle.org/current/userguide/gradle_wrapper.html)에서 가져온 gradle wrapper 작동 순서
 

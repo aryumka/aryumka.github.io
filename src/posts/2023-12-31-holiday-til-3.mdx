@@ -10,6 +10,8 @@ draft: false
 hide: false
 ---
 
+import Image from '@components/Image';
+
 3일차에 공부하다보니 다음과 같은 고민을 하게됐다.
 
 > JPA에서 @Transactional을 무조건 붙여야할까?
@@ -27,7 +29,8 @@ hide: false
 명시적으로 트랜잭션 경계를 구분해야할 필요성이 있을 때, 트랜잭션 격리수준, 예외 등을 설정할 때 등에 사용하면 된다. 
 
 ## 2. Kotlin에서 JpaRepository를 쓸 때 Optional 안쓰는 법
-![](https://velog.velcdn.com/images/aryumka/post/0c169fc0-5d98-4cd2-9d50-04672ebc9d84/image.png)
+
+<Image src="https://velog.velcdn.com/images/aryumka/post/0c169fc0-5d98-4cd2-9d50-04672ebc9d84/image.png" />
 
 ```kotlin
     fun getFundingProposalByIdOrNull(id: Long): FundingProposal? =

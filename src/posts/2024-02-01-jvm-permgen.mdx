@@ -10,6 +10,8 @@ draft: false
 hide: false
 ---
 
+import Image from '@components/Image';
+
 ### 의문의 서막: PermGen Space 
 ```
 java.lang.OutOfMemoryError : PermGen space 
@@ -50,8 +52,9 @@ JVM 공식 스펙에서는 `메서드 영역`으로 일컫어지지만 흔히 �
 `메서드 영역`은 JVM 실행 후 클래스 로딩 단계에서 클래스로더에 의해 *.class 파일들의 바이트코드가 메모리로 로딩될 때 할당된다. 이 때 JVM의 런타임 데이터 영역(Runtime Data area)에 바이트코드에 담긴 데이타를 배치한다. 
 
 이후 힙 영역의 객체들이 클래스의 메타데이타를 참조할 때 바로 이 `메서드 영역`을 찾아가 참조한다. 
->![](https://velog.velcdn.com/images/aryumka/post/5d229294-1008-49d1-be40-cf13d9f9604c/image.png)
->그림을 통해 최대한 추상적으로 표현해보았다.
+
+<Image src="https://velog.velcdn.com/images/aryumka/post/5d229294-1008-49d1-be40-cf13d9f9604c/image.png" caption="그림을 통해 최대한 추상적으로 표현해보았다." />
+
 >세부 구조는 위와 같이 단순하지 ~~허접하지~~ 않으며 JVM 공식 스펙에서 힙과 `메서드 영역`의 내부 디자인에 대해 관여하지 않기 때문에 벤더마다 상이할 수 있다.
 
 메서드 영역은 다음과 같은 클래스별 정보를 저장한다.
@@ -77,7 +80,7 @@ JVM 공식 스펙에서는 `메서드 영역`으로 일컫어지지만 흔히 �
 
 둘 다 메서드 영역이지만 다르다. 가장 큰 차이점은 바로 사용하는 메모리 영역이다.
 
-![](https://velog.velcdn.com/images/aryumka/post/06a9cbce-cb02-4956-8b17-b1d359b9357d/image.png)
+<Image src="https://velog.velcdn.com/images/aryumka/post/06a9cbce-cb02-4956-8b17-b1d359b9357d/image.png" />
 
 `PermGenSpace`는 힙 영역이며 따라서 앞에서 언급했듯 고정된 메모리를 사용, 가능한 최대 크기는 힙의 크기라고 볼 수 있다. 기본 사이즈는 32비트 JVM에서 64 MB, 64비트 버젼에서 82 MB이다.
 이와 반대로 `Metaspace`는 네이티브 영역, 즉 OS에 의해 관리되는 메모리에 존재하며 그 크기가 가변적이다. 가능한 최대 크기는 시스템의 가용 메모리가 된다. 
@@ -96,9 +99,7 @@ JVM 공식 스펙에서는 `메서드 영역`으로 일컫어지지만 흔히 �
 
 하지만 `Metaspace` 또한 언제든 메모리 누수가 발생할 수 있으며 최악의 경우 어플리케이션 뿐만이 아닌 전체 시스템에 영향을 미친다는 점에서 주의를 기울여야 관리해야 한다.
 
->![](https://velog.velcdn.com/images/aryumka/post/651716c8-bc12-4b2c-a462-06dc5f49cf81/image.png)
->Visual VM에서 확인한 metaspace
-
+<Image src="https://velog.velcdn.com/images/aryumka/post/651716c8-bc12-4b2c-a462-06dc5f49cf81/image.png" caption="Visual VM에서 확인한 metaspace" />
 
 ### 마치며
 리플렉션을 공부하다가 글로 배운 jvm의 메서드 영역이 알고보니 구면이었다니 너무 신기했다. 레가시 시스템을 해봤기에 더욱 와닿았던 것 같다. 

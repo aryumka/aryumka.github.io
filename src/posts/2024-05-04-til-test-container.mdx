@@ -10,10 +10,13 @@ draft: false
 hide: false
 ---
 
+import Image from '@components/Image';
+
 In-memory service나 mock 없이 통합 테스트 환경에서 Docker 이미지 기반으로 DB, 메시지 브로커, 검색엔진 등의 테스트 인프라를 간단하게 구성할 수 있다.
 
 특히 클라우드 환경의 MSA에서 유용하다.
-![](https://velog.velcdn.com/images/aryumka/post/9fcbd346-bd6e-4097-bce9-b7c9468b5cfc/image.png)
+
+<Image src="https://velog.velcdn.com/images/aryumka/post/9fcbd346-bd6e-4097-bce9-b7c9468b5cfc/image.png" />
 
 JUnit을 이용한 테스트에서는 아래와 같이 사용한다.
 ```kotlin

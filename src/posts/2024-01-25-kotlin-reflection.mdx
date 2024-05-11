@@ -10,6 +10,8 @@ draft: false
 hide: false
 ---
 
+import Image from '@components/Image';
+
 ## 리플렉션이란?
 런타임에 동적으로 클래스의 인스턴스를 **생성 및 조작**할 수 있는 기술이다. 리플렉션을 사용하면 클래스에 대한 정보를 미리 알지 못해도 객체를 조작할 수 있다.
 
@@ -52,7 +54,9 @@ dependencies {
 ```
 코틀린의 리플렉션 API는 코틀린 뿐만이 아닌 다른 JVM 기반 언어들과 호환된다.
 ### 리플렉션이 가능한 대상
-![](https://velog.velcdn.com/images/aryumka/post/2352d0a0-9fa0-44c9-b037-acec8dcd887e/image.png)
+
+<Image src="https://velog.velcdn.com/images/aryumka/post/2352d0a0-9fa0-44c9-b037-acec8dcd887e/image.png" />
+
 코틀린 리플렉션은 위와 같은 계층구조를 갖고 있다.
 클래스의 리플렉션인 `KClass`, 함수 `KFunction`와 변수`KProperty`, 그리고 이들을 포함하는 `KCallable`과 `KParameter`로 이루어져 있다
 
