@@ -1,3 +1,0 @@
-# aryumka.me
-
-devlog
