@@ -1,0 +1,59 @@
+---
+title: "[TIL] Kotlin - sortedWith과 compareBy를 이용한 다중조건 정렬"
+categories: dev
+tags: [TIL, Kotlin, Sort]
+series: ''
+cover: ''
+image: '/images/og.png'
+comments: true
+draft: false
+hide: false
+---
+
+다중조건으로 정렬해야 할 때 `sotredWith()` 안에 `compareBy()` 또는 `compareBy{}.thenBy{}`를 파라미터로 넘겨준다. `compareByDescending{}` 또는 `.thenByDescending{}`도 있다.
+
+아래는 코드 예시
+```kotlin
+data class Person(val age: Int, val name: String, val address: String)
+
+fun main() {
+    val list = listOf<Person>(
+		Person(10, "Bob", "Berlin"),
+		Person(10, "David", "Berlin"),
+		Person(10, "Alice", "Paris"),
+		Person(10, "Charles", "Paris")
+	)
+    
+    //1. 주소로 먼저 정렬 후 이름 역순으로 정렬
+    val sortedList = list.sortedWith(
+        compareBy<Person>{
+            it.address
+        }.thenByDescending {
+            it.name
+        }
+    )
+    
+    println(sortedList)
+    /* 출력결과
+    [Person(age=10, name=David, address=Berlin),
+    Person(age=10, name=Bob, address=Berlin), 
+    Person(age=10, name=Charles, address=Paris), 
+    Person(age=10, name=Alice, address=Paris)] */
+    
+    
+    
+    //2. 주소로 먼저 정렬 후 이름 순으로 정렬
+    val sortedList2 = list.sortedWith(
+        compareBy(        
+            {it.address},{it.name}
+        )
+    )
+    println(sortedList2)
+    /*출력결과
+    [Person(age=10, name=Bob, address=Berlin), 
+    Person(age=10, name=David, address=Berlin), 
+    Person(age=10, name=Alice, address=Paris), 
+    Person(age=10, name=Charles, address=Paris)]
+    */
+}
+```  

@@ -51,12 +51,13 @@ Dog cuteDog = new Dog(doll);
 Injector injector = new Injector(Config);
 Dog cuteDog = injector.get(Dog.class)
 ```
+
 외부모듈에 의해 미리 생성된 의존관계를 공급받아 객체를 생성하기도 한다. 후자와 같은 형태를 `DI` 패턴이라고 한다.
 
 그림으로 나타내면 아래와 같다.
+
 ![](https://velog.velcdn.com/images/aryumka/post/7f996a48-7da4-4a94-acd1-336eae84403e/image.png)
 ![](https://velog.velcdn.com/images/aryumka/post/0dbb415c-8d11-4398-bb95-7ffec7122e44/image.png)
-
 
 의존관계 **주입**이라는 말에서 알 수 있듯 DI 패턴에서는 객체 **외부의 다른 객체 또는 모듈**이 객체 생성 및 의존관계 설정을 담당한다. 
 **마치 블록을 조립할 때 블록이 아닌 조립하는 사람이 완성된 모양을 결정하는 것처럼 말이다.** 
