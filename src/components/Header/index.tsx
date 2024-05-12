@@ -38,9 +38,9 @@ const Header = () => {
 
       <MenuContainer>
         <Menu>
-          <Link to="https://aryumka.me/resume" target="_blank" className="item">
+{/*           <Link to="https://aryumka.me/resume" target="_blank" className="item">
             Résumé
-          </Link>
+          </Link> */}
           <Link to="/timeline" className={`item ${updated ? 'updated' : ''}`}>
             Timeline
           </Link>
