@@ -1,0 +1,357 @@
+---
+title: "예외는 던져져야 할까?"
+categories: dev
+tags: [Java, Kotlin, Spring, Exception]
+
+series: 'Exception'
+cover: ''
+image: '/images/og.png'
+comments: true
+draft: false
+hide: false
+---
+
+# 0. 문제의식
+- 사내 슬랙에 에러 로그가 쌓이는데 어떤 것이 진짜 중요한 오류인지 알 수 없었다.
+- 언제 어떤 예외를 던져야 하는지, 커스텀 예외는 얼마나 만들어 써야 할지 명확한 기준이 없었다.
+
+# 1. 서론
+한가로운 주말 아침, 유튜브 알고리즘이 날 한 영상으로 이끌었다. 왜 리눅스의 창시자인 리누스 토르발즈가 커널 개발에 C++를 극도로 반대하는지에 대한 영상이었다. [**리누스 토르발즈의 C++ 혐오**](https://yarchive.net/comp/linux/c++.html)는 유명한데, 그는 심지어 C++가 **근본적으로 잘못된 언어**라며 대표적인 예로 **예외 처리(Exception Handling)**를 들었다.
+
+> C++의 예외 처리는 근본적으로 망가졌다. 특히 커널 개발용으로는 아예 박살이 나 있다.
+> (_the whole C++ exception handling thing is fundamentally broken. It's **especially** broken for kernels._)
+
+뒤통수를 맞은 느낌이었다. 예외를 던지지 않고 개발을 할 수 있다고?
+그렇다면 C나 전통적인 절차적 프로그래밍에는 **예외**라는 개념이 없었던 걸까?
+
+# 2. 절차적 예외 처리
+그렇다. C 언어에는 자바나 C++ 같은 객체지향 언어들이 가진 `try-catch`나 `Exception` 객체가 없다. 대신 에러 상태를 리턴 값으로 내려주고 호출부에서 이를 검증하는 방식이 일반적이다.
+
+```c
+int main() {
+    FILE *file = fopen("data.txt", "r");
+    if (file == NULL) {
+        perror("파일 열기 실패");
+        return 1; // 에러 코드 반환
+    }
+
+    fclose(file);
+    return 0; // 정상 종료
+}
+```
+
+이런 방식은 자바의 오래된 레거시 코드에서도 흔히 볼 수 있다. 하지만 명확한 한계를 갖고 있다.
+- 호출부에서 정상 값과 오류 값을 혼동할 수 있다.
+- 에러가 발생한 이유를 명확히 알기 어렵다.
+
+이를 보완하기 위해 에러 메시지를 문자열로 담은 구조체를 리턴하기도 한다.
+
+```java
+public class FileReader {
+  public static Map<String, Object> readFile(String path) {
+    Path filePath = Paths.get(path);
+
+    if (!Files.exists(filePath)) {
+      return Map.of("success", false, "error", "파일이 존재하지 않습니다.");
+    }
+
+    List<String> lines = Files.readAllLines(filePath);
+    return Map.of("success", true, "content", String.join("\n", lines));
+  }
+}
+```
+실제 외부 API와 통신할 때도 이런 식의 문자열 응답을 자주 볼 수 있다. 이런 방식도 몇 가지 문제가 있다.
+
+- 호출 후 결과를 사용하기 전 매번 `if`로 정상 값 검사해야 함 → **보일러 플레이트 증가**
+- 에러 원인이 문자열로 주어져 상황에 맞는 대응이 어려움 → **유연성 저하**
+- 에러가 발생한 경우에도 호출부에서 처리를 강제할 수 없고 복구가 불가능한 상황에서도 계속 진행을 시도할 수 있음 → **예외 처리 강제성 부재**
+- 컴파일 타임에 실수를 알 수 없음 → **치명적 결과로 이어질 수 있음** ☠️
+
+어차피 실패인데 왜 끝까지 실행되어야 할까? 더군다나 한번의 실수가 치명적인 오류 전파로 이어질 수 있다면?
+결국 이런 방식은 실수하기 너무 쉽다. 실패할 상황이라면 차라리 빨리 포기하는 게 낫지 않을까?
+
+# 3. 자바의 예외 처리
+
+## Fail Fast and Throw
+
+리누스가 극혐했던 객체지향 언어들(C++, Java 등)은 예외를 던지고 받는 방식을 쓴다. 특히 자바는 **Fail Fast** 철학을 따른다. 문제가 있을 때 빠르게 실패해 버그를 즉시 드러내는 방식이다.
+
+빨리 실패해야 빨리 고칠 수 있다.
+
+자바의 예외는 크게 두 가지로 나눈다. 바로 `Checked Exception`과 `Unchecked Exception`이다.
+
+## Checked Exception
+
+`Checked Exception`은 C++ 등 대부분 언어에는 존재하지 않는 자바만의 독특한 예외 처리 방식이다. 대표적인 예로 `IOException`이 있다.
+
+`Checked Exception`은 **컴파일러가 반드시** 예외 처리를 요구한다. 주로 일반적, 예측가능한 비즈니스 케이스에서 사용하라고 의도된 디자인이다. 심지어 스프링에서는 아래처럼 던져도 롤백조차 되지 않는다.
+```java
+@Transactional
+public void doSomething() throws IOException {
+    try {
+        //파일 처리 등
+    } catch (IOException e) {
+        throw e; // Checked Exception → Spring은 롤백 안 함
+    }
+}
+```
+실패 가능한 경우가 메서드 시그니처에 나와있으므로 **API가 어떤 예외를 던질 수 있는지** 명시적이라는 장점이 있다. 코드 자체가 문서화된다.
+
+그러나 오히려 이 때문에 `CheckedException`은 예외가 어플리케이션 전역에 전염된다는 치명적인 단점이 있다. 이를 방지하기 위해 호출부에서 무의미한 `try catch`가 남용되기도 한다.
+```java
+try {
+    userService.updateLastLogin(userId);
+} catch (Exception e) {
+    // 예외가 발생해도 아무것도 하지 않음.
+}
+```
+위와 비슷한 이유들로 이제는 `Checked Exception`을 사용하지 않는 추세이고 심지어 안티패턴으로 간주, 사용하지 않기를 권장하기도 한다.
+
+> 💡 Scala 3에는 최근 `CheckedException`과 비슷한 `canThrow`가 추가되었다. `canThrow`는 예외가 던져질 수 있음을 타입 시스템으로 강제한다. 즉 예외도 타입의 일부로 취급된다.
+
+## 스프링의 예외 처리
+
+자바의 철학을 이어받은 스프링에서는 주로 `RuntimeException`을 사용한다. 스프링 DB 사용 시 자동 롤백을 지원하고 `@ControllerAdvice`를 통해 전역 예외 처리가 가능하다. 즉 **매우 편리**하다.
+
+비즈니스 맥락을 표현하기 위해 `RuntimeException`을 상속한 커스텀 예외들을 사용하기도 한다.
+
+```java
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException e) {
+      return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+    }
+}
+```
+하지만 지나치게 세분화된 예외는 가독성을 떨어뜨리고 전역 처리의 의미를 희석시킨다.
+특히 커스텀 예외들은 비즈니스 상황마다 다르게 처리되어야 할 수 있으나 전역으로 처리된 비즈니스 예외들은 그저 메시지 전달이나 로깅 처리에 그치고 만다.
+```java
+public void login(String inputPassword, String actualPassword) {
+    if (isPasswordMismatch(inputPassword, actualPassword)) {
+       throw new InvalidPasswordException("입력한 비밀번호가 올바르지 않습니다.");
+    }
+}
+```
+사실 이런 커스텀 예외들은 애초에 처리가 필요 없을 수도 있다.
+
+> _사용자가 비밀번호를 틀렸다는 오류를 개발자가 확인해야 할까?_
+
+보통 모니터링 툴은 예외가 던져지고 처리되지 않으면 에러 레벨로 간주한다. 볼 필요가 없는 오류가 쌓이면 정말 처리되어야 하는 예외가 묻힐 확률은 높아진다.
+```java
+try {
+    userService.login(inputPassword, actualPassword);
+} catch (InvalidPasswordException e) {
+    log.error("로그인 실패: " + e.getMessage());
+}
+```
+`try catch`로 잡는다고 해도 마찬가지다. 가독성은 가독성대로, 성능은 성능대로 희생하는 악수`惡手`다.
+
+모니터링 채널에서 **안봐도 되는 오류라면 그냥 처음부터 던지지 말아야** 한다. 일단 던지고 잡는다? 위에서 본 `CheckedException`의 무의미한 던지고 받기와 다를 바 없다. 로그 한줄 남기려고 던지기에 `try catch`의 비용은 저렴하지 않다.
+
+더 큰 문제는 **제어 상실**에 있다. 처리되지 않은 예외는 즉시 코드 흐름을 중단시키며 전체 프로그램의 예측 가능성을 크게 떨어뜨린다.
+
+자신이 작성한 프로그램이라도 코드레벨에서 각 메서드에서 어떤 예외가 언제 어떻게 발생할지 정확히 파악하기는 어렵다. 예외 발생 경로를 꼼꼼히 문서화하는 경우도 드물다.
+
+# 4. 예외를 바라보는 다른 시각
+
+## 계약 위반
+**Method Signature**는 정말 액면 그대로의 서명`Signature`이라는 뜻이다.
+
+인터페이스를 계약이라고 본다면 **예외는 계약 위반**이라고 봐야 마땅하다. 리턴받기로 약속하고 서명한 값 대신 에러가 돌아왔기 때문이다.
+지금은 무시받는 `CheckedException`이지만 자바 디자이너들의 의도도 비슷했을 것이다.
+```java
+public String getSomething() throws IOException; // 메서드 시그니처에서 String을 반환하거나 IOException을 던진다는 계약
+```
+
+> 원래 `method signature`는 컴파일러가 메서드를 정확히 찾아가기 위한 서명, 즉 고유 식별자를 뜻한다. 메서드 이름과 인자만 해당되며 리턴 타입은 포함되지 않는다. 컴파일러는 리턴 타입만 가지고 어떤 메서드인지 정확히 판단할 수 없기 때문이다.
+
+물론 계약은 위반될 수 있다. 하지만 쉽게 위반되는 계약은 좋은 계약이 아니다.
+> 상법에도 계약 상 불가항력`Force Majeure`이라는 개념이 있다. 전쟁이나 천재지변 같은 사건이 발생하면 계약은 무효가 된다.
+
+즉, 예외를 아예 안던질 순 없다. 프로그램 부팅 시 포트가 이미 사용 중이라면? 그냥 던져버리고 프로그램을 종료하는 게 맞다.
+
+하지만 찾고 있는 유저의 ID가 DB에 없는 상황이라면? 입력한 날짜가 유효하지 않는 날짜라면? 이건 천재지변보다는 완벽하게 예상 가능한 비즈니스 케이스에 가깝다.
+
+## 값으로서의 예외
+
+**함수형 프로그래밍**에서는 예외 던지기를 **부수 효과`side effect`**라고 여긴다.
+부수효과는 함수가 결과를 리턴하는 것 이외에 다른 일을 하는 행위를 뜻한다. 참조투명성과 순수성을 보장하기 위해서는 실행 중 잘못된 상황이 발생해도 제어 흐름에 영향이 없어야 한다.
+
+그래서 값으로 예외를 리턴한다.
+
+그렇다면 `false`나 `-1` 등의 에러 값을 표현하는 **절차적 프로그래밍**과 무엇이 다를까? 가장 큰 특징은 유효하지 않은 값이라는 것을 컴파일 단계에서 명확하게 알 수 있다는 점이다.
+
+### Null
+무엇인가 잘못되었을 때 가장 직관적으로 떠올릴 리턴 값은 아마도 `null`일 것이다. 실무에서도 해당 없는 값을 화면에 표시할 때 `null`을 리턴하는 경우도 많다.
+
+그러나 많이 사용하는 방법이라고 좋은 방법은 아니다.
+
+null 직접 참조를 피하기 위해 즉각적인 검사 코드가 필요하다. 결국 절차적 프로그래밍의 예외처리와 유사한 문제들이 발생한다.
+
+### Optional
+자바 8에서 함수형 API들과 함께 도입된 `Optional`은 값이 있을 수도 있고 없을 수도 있다는 것을 표현하는 타입 빌더이다.
+```java
+Optional<String> name = findUserNameById(id);
+name.ifPresent(System.out::println);
+```
+오류가 발생하지 않았다는 가정 하에 null을 직접 다루지 않고 안전한 방식으로 연산을 이어나가고 필요할 때 꺼내 쓸 수 있다.
+
+하지만 `Optional`은 실패에 대한 이유를 담지 못한다는 한계가 있다.
+
+만약 DB에서 무언가 조회하는 메서드에서 `Optional.EMPTY`를 반환한다면 어떤 의미일까? 값이 없다는 의미일까? 아니면 DB 연결이 끊겼다는 의미일까?
+사용자에게 입력을 유도해야 할까? 조금 이따 재시도를 유도해야 할까?
+
+단순한 존재 여부만 표현할 수 있기 때문에, 실패 원인이 중요할 때는 적절하지 않다.
+
+### Result
+우리는 예외로서의 값과 실패 사유를 모두 알고 싶다.
+코틀린에서는 자체적으로 Result 객체를 제공한다. 성공과 실패를 명확히 구분하고 실패의 이유를 전달한다.
+```kotlin
+// runCatching에서 리턴되는 객체가 Result!
+runCatching { userService.getUser(id) }
+    .onSuccess { user -> println(user.name) }
+    .onFailure { e -> log.error("사용자 조회 실패", e) }
+```
+자바로 구현하면 이런 식으로 생겼다.
+```java
+public final class Result<T> {
+
+    private final T value;
+    private final Throwable error;
+	// 생성자 생략
+    public boolean isSuccess() {
+        return error == null;
+    }
+
+    public boolean isFailure() {
+        return error != null;
+    }
+    // ...
+}
+```
+함수형이라고 표현했지만 사실 이거 자바개발자들에게도 익숙한 구조다. http 응답으로 내려주는 `Response` 객체와 비슷하다. 생각해보면 당연하다.
+내 서버의 오류 응답은 null이나 empty로 내리고 코드나 로그로 원인을 확인할 수 있지만 원격으로 내려오는 응답이라면? `Result` 같은 객체 사용은 더 이상 선택 사항이 아니다.
+
+만약 에러 자체도 `RuntimeException`이 아닌 커스텀 객체를 사용하고 싶다면 타입 파라미터를 추가할 수도 있다.
+```java
+public final class Result<E, T> {
+
+    private final T value;
+    private final E error;
+    // ...
+}
+```
+> 함수형에서 이런 스타일은 `Either<L, R>`라고 통용된다. 일반적으로 오른쪽`Right`에 있는 것이 올바른`Right` 값이다.
+
+`Result` 객체를 이용하면 예외가 발생할 수 있는 메서드를 코틀린으로 아래와 같이 구현할 수 있다.
+```kotlin
+data class InvalidPasswordError(override val msg: String) : ResultError // 직접 만든 커스텀 에러 인터페이스
+
+fun checkPassword(input: String, actual: String): Result<InvalidPasswordError, String> {
+    return if (input == actual) {
+        input.asSuccess()
+    } else {
+        InvalidPasswordError("비밀번호가 일치하지 않습니다.").asFailure()
+    }
+}
+```
+사용하는 쪽은 다음과 같이 구현된다.
+```kotlin
+val result = checkPassword(inputPassword, actualPassword)
+val password = result.onFailure { error ->
+    println("로그인 실패: ${error.msg}")
+    return  // 여기서 탈출
+}
+
+println("로그인 성공. 비밀번호: $password")
+```
+
+단순히 예외가 던져지지 않기에 실패로 끝나지 않고 재처리`retry`, 복구`recover` 등의 사후처리도 쉽고 구조적으로 가능하다.
+
+예를 들어 외부에서 카드 내역 스크래핑 api 요청 로직이라면 실패할 때 재처리가 필요할 수 있다.
+```kotlin
+val message: String = fetchCardHistory()
+	// 실패 시 재시도
+    .orElseRetry { fetchCardHistory() }
+    // 성공한 경우 결과를 사용
+    .map { list -> "총 ${list.size}건의 카드 내역이 있습니다." }
+    // 실패한 경우 캐시에서 불러옴
+    .recoverWith { error ->
+        println("재시도 후에도 실패. 캐시에서 불러옵니다.")
+        fetchCardHistoryFromCache()
+    }
+}
+```
+제어 흐름이 한눈에 보이고 예외 처리가 더 자유로워진다. 코틀린에서 제공하는 확장함수는 이런 에러처리를 편리하게 구현할 수 있게 도와준다.
+```kotlin
+// Result의 확장함수로 정의
+fun <E : ResultError, T> Result<E, T>.orElseRetry(
+    fallback: () -> Result<E, T>
+    // 실패 시 재처리 로직을 넣어준다. 횟수나 조건 등을 넣어 정교하게 만들 수도 있다.
+): Result<E, T> = when (this) {
+    is Success -> this
+    is Failure -> fallback()
+}
+
+fun <E : ResultError, T> Result<E, T>.recoverWith(
+	f: (E) -> Result<E, T>
+): Result<Nothing, T> = when (this) {
+    is Success -> this
+    is Failure -> f(error)
+}
+```
+
+하지만 스프링을 사용하는 사람들에게 `RuntimeException`는 포기할 수 없는 편리함이다. 만약 서비스 단에서 예외를 던져 롤백을 발생시키고 싶다면 아래와 같이 예외를 생성해 던질 수 있다.
+```kotlin
+@Transactional
+fun scrapeAndSave(userId: Long) {
+    val result = fetchAllHistories(userId)
+
+    result.onFailure { error ->
+        throw ScrapingException(error.msg)
+    }
+
+    val history = result.onSuccess { it }
+
+    // DB에 저장
+    saveToDb(userId, history)
+}
+```
+
+이런 방식의 제어 흐름을 일종의 선로라고 생각, `try catch` 없이 순차적으로만 개발하는 레일웨이 지향 프로그래밍`Railway-Oriented Programming`이라는 것도 있다.
+관심있는 사람들을 위해 잘 정리된 글 [링크](https://kciter.so/posts/railway-oriented-programming/)를 남긴다.
+
+# 5. 결론
+예외 처리는 곧 프로그램의 신뢰를 다루는 문제다.
+신뢰가 근본적으로 깨진 상황(시스템 실패, DB 연결 오류 등)은 즉시 예외를 던져 빠르게 실패(fail-fast)하고,
+규칙이나 비즈니스 로직 상의 예상 가능한 오류(존재하지 않는 유저 ID, 잘못된 입력 값 등)는 값으로 명시적으로 전달하자.
+
+예외는 예외적으로만 던져야 의미가 있다.
+무의미한 커스텀 예외를 남발하는 대신, 실패의 이유를 명확하게 담을 수 있는 값 기반의 오류 처리를 고려하자.
+결국, 좋은 예외 처리는 개발자의 인지부하를 줄이고, 중요한 오류를 놓치지 않도록 돕는다.
+
+예외 처리에도 맥락이 필요하다. 상황에 따라 현명하게 선택하자.
+
+# 부록: 그래도 나는 던지고 싶다 – Try-Catch의 비용
+그럼에도 불구하고 그냥 던지고 싶을 수 있다. 하지만 던지기 전에 한번쯤 비용이 궁금할 수도 있다.
+`try-catch`의 비용을 분석하기 위해 [벤치마크 실험](https://velog.io/@aryumka/Kotlin-%EC%98%88%EC%99%B8-%EC%B2%98%EB%A6%AC-%EC%84%B1%EB%8A%A5-%EB%B9%84%EA%B5%90-Either-vs-Try-catch)을 진행했다.
+
+결론부터 말하자면 `catch` 없는 `throw`는 거의 오버헤드가 없다.
+하지만 **`catch`가 일어날 때 비용이 증가했는데, 정상 대비 throughput이 약 200배 가량 적었고, 반면 값을 사용하여 예외 처리한 경우 정상 대비 약 10배 가량 적은** 것을 확인했다.
+
+`try catch`가 비싼 이유를 간단하게 정리하자면 아래의 두 가지 정도로 요약 가능하다.
+
+1. `Throwable`은 비싼 객체
+- 특히 현재 스레드의 스택 정보를 기록하는 stackTrace 생성이 비쌈.
+- stackTrace 로깅 등을 하게 되면 더욱 성능 저하
+2. JVM은 예외가 자주 발생하는 코드의 최적화를 포기함
+  - 메서드 인라이닝 하지 않음
+  - 무조건적 Heap 할당이 일어나고, 메모리 할당과 GC 비용 증가
+  - 기타 jvm 최적화에서 제외
+
+**성능이 중요한 코드에서는 특히 2번 경우를 조심할 필요가 있다.**
+
+`과부하로 인한 에러 발생 증가` > `최적화 제외` > `성능 저하` > `부하 증가` > `과부하로 인한 에러 발생 증가`> ... > `무한 반복`
+
+부지불식간에 이런 악순환을 부르고 있는지도 모르기 때문이다.
