@@ -1,0 +1,298 @@
+---
+title: "PDF의 수정 가능한 필드 추가하기"
+categories: dev
+tags: [Kafka, AxonFramework, EventSourcing, CQRS, DDD, Java, SpringBoot]
+series: ''
+cover: ''
+image: ''
+comments: true
+draft: false
+hide: false
+---
+
+많은 문서 포맷들이 있지만 **PDF는 특히 문서의 레이아웃을 그대로 유지**해주기에 서식 파일, 계약서, 제출 양식 등의 문서에 유용하게 사용됩니다.
+최근 팀 내에서 법정 신고서식 PDF를 코드로 다루는 작업을 맡게 되었습니다. 시행착오와 디버깅, 코드 분석, 리서치를 통해 배운 내용을 글로 자세히 정리해봤습니다.
+비록 백엔드 관련이지만 화면을 그리는 작업인만큼 프론트 개발 경험이 있다면 더 편하게 이해하실 수 있습니다.
+만약 이슈 해결 사례만 궁금하시다면 바로 트러블 슈팅 섹션으로 이동하셔도 됩니다.
+~~사실 그냥 바로 결론만 봐도 됨~~
+# PDFBox
+
+이번 작업에 사용한 `Apache PDFBox`는 Java 기반의 오픈소스 라이브러리로, PDF 파일을 생성, 조작, 변환할 수 있는 기능을 제공합니다.
+`PDFBox`를 이용하면 PDF 양식 필드, 이미지 삽입, 텍스트 추가 및 수정이 가능합니다. 제가 작업한 요구사항은 다행히(?) 텍스트만 추가하는 것이었지만요.
+
+**결론적으로 수정 가능한 텍스트를 만들기 위해서는 아래와 같이 `PDTextField`라는 객체을 사용하면 됩니다.**
+```java
+PDDocument document = new PDDocument(); // PDF 생성
+PDAcroForm acroForm = new PDAcroForm(document); // AcroForm 생성
+document.getDocumentCatalog().setAcroForm(acroForm); // PDF와 AcroForm 연결
+
+PDTextField textField = new PDTextField(acroForm); // 텍스트필드 생성
+textField.setDefaultAppearance("/Helv 12 Tf 0 g"); // 기본 폰트 설정
+textField.setMultiline(true); // 줄바꿈 설정
+textField.setValue("랜덤 텍스트123"); // 텍스트 값 설정
+
+PDAnnotationWidget widget = textField.getWidgets().get(0); // 위젯 가져오기
+PDRectangle rect = new PDRectangle(50, 750, 200, 20); // 위젯 좌표 설정
+widget.setRectangle(rect); // 위젯과 좌표 연결
+widget.setPage(page); // 페이지 설정
+page.getAnnotations().add(widget); // 위젯 추가
+
+acroForm.getFields().add(textField);
+document.save("EditablePDF.pdf");
+document.close();
+```
+그런데 이렇게만 보면 뭐가 뭔지 모르겠죠?
+이 작업을 처음 시작한 저도 마찬가지였습니다. 이제부터 하나씩 알아보겠습니다. 그냥 텍스트 하나 추가하고 싶을 뿐인데 알아야 할 게 참 많네요.
+이미 알고 계신다면 이 섹션은 통으로 넘기고 바로 다음 섹션인 **트러블 슈팅**부터 보시길 추천드립니다.
+## PDDocument
+PDFBox에서 PDF 문서를 나타내는 객체입니다. **메모리 상에서 실제 PDF 문서와 1:1로 대응**되는 아이입니다. 실질적으로 **최상위 객체**라고 보면 됩니다.
+위 샘플 코드의 첫번째 라인에서 생성해주었습니다.
+```java
+PDDocument document = new PDDocument();
+```
+## PDAcroForm
+**PDF 문서 내 양식을 관리**하는 객체입니다. 하나의 문서(`PDDocument`)에는 하나의 `AcroForm`이 존재하며 이 `Acroform`이 문서 전체의 필드들을 갖고 있습니다.
+
+위 코드의 두번째 라인에서 생성해주었습니다.
+```java
+PDAcroForm acroForm = new PDAcroForm(document);
+```
+`PDFBox`는 기본적으로 위와 같이 상위 객체를 생성자로 받아 각 요소들을 생성합니다. 비슷한 패턴이 반복되므로 이 점을 기억해두는 편이 좋겠습니다.
+
+개인적으로는 이런 객체 생성방식과 특유의 계층구조 때문에 하위 객체를 제어하거나 디버깅하기 위해 타고 타고 올라가 위의 객체들까지 알아야해서 꽤 불편했습니다.
+
+생성했다고 끝이 아닙니다.
+
+이제 생성한 `PDAcroForm`이 위에서 만든 PDF의 아이라고 알려줘야 합니다. 그 PDF를 넣고 생성한 AcroForm이지만 둘은 서로를 모릅니다(^^). 샘플코드 세번째 줄입니다.
+```java
+document.getDocumentCatalog().setAcroForm(acroForm);
+```
+`DocumentCatalog`는 PDF 문서의 구조적 정보를 포함하는 상위 객체로, PDF 문서의 전체 구조와 메타데이터를 관리하는 역할을 합니다.
+쉽게 말해 Javascript의 `DOMTree`와 비슷하다고 보면 됩니다.~~근데 이제 절망버젼인 DOM~~
+
+`PDTextField`와 같은 필드들은 실제로 **문서 자체가 아닌 이 `AcroForm`에 추가되고 관리**됩니다. 필드를 적절하게 생성, 설정한 뒤에는 반드시 이 `PDAcroForm`에 추가해주어야 합니다. 샘플 코드의 16번째 줄입니다.
+```java
+acroForm.getFields().add(textField);
+```
+## PDTextField
+드디어 오늘의 주인공인 `PDTextField`가 나옵니다. PDF 문서 내의 텍스트 입력 필드로, 사용자가 직접 키보드로 텍스트 값을 수정 할 수 있습니다.
+`PDTextField`는 실제 **텍스트**를 갖고 있습니다. 즉 **프레젠테이션이 아닌 텍스트 값, 폰트, 줄바꿈 설정 등 텍스트 관련 데이터**만을 관리합니다. 자세한 내용은 아래에서 더 다룹니다.
+
+위 샘플 코드(5번째 줄)에서 생성했습니다.
+```java
+var newTextField = new PDTextField(acroForm);
+```
+이제 생성한 `TextField`의 다양한 속성을 제어할 수 있습니다. 특히 주목해야할 것은 6번째 라인입니다.
+```java
+textField.setDefaultAppearance("/Helv 12 Tf 0 g");
+```
+`Default Appearance`는 텍스트의 기본 글꼴 설정입니다. 규칙에 맞는 문자열(연산자 조합)로 설정합니다.
+하나씩 살펴보겠습니다.
+- `/Helv` Font파일의 경로입니다.
+- `12 Tf` 폰트 크기 설정입니다. 숫자는 크기를 의미합니다.
+- `0 g` 텍스트의 색상을 설정합니다. 0 g는 그레이스케일의 검은색을 의미합니다. 색상을 rgb값으로 지정하고 싶다면 rg 연산자도 있습니다(빨간색은 1 0 0 rg).
+
+이외에도 텍스트 위치, 자간 등 폰트 설정을 위한 다양한 연산자가 제공됩니다.
+
+7번째 줄에서와 같이 줄바꿈 설정을 합니다. true일 경우 줄바꿈, false일 경우 줄바꿈을 하지 않습니다.
+8번째 줄에서와 같이 실제 표시될 텍스트 값을 설정합니다.
+
+## PDAnnotationWidget
+위에서 언급했듯 `PDTextField`는 텍스트와 관련 데이터만을 관리합니다.
+이 **필드가 실제로 문서의 어느 페이지에 어떻게 배치되고 표현되는지 관리**하기 위해서는 `PDAnnotationWidget`이 필요합니다.
+(저는 이 부분이 정말 헷갈렸습니다. 왜 텍스트필드의 데이터와 프레젠테이션이 별도로 생성 및 설정되어야 하는지 사실 지금도 이해가 잘 가지 않습니다. javascript의 DOM에 익숙한 탓일지도요.)
+
+`PDAnnotationWidget`은 샘플 코드의 10번째 줄과 같이 세팅할 텍스트필드에서 직접 가져옵니다.
+```java
+PDAnnotationWidget widget = textField.getWidgets().get(0);
+```
+그런데 코드를 보면 텍스트필드와 위젯의 관계는 1:n인 것처럼 보이죠? 많은 widgets 중 0번째 것을 가져오고 있으니까요.
+
+맞습니다. 하나의 텍스트 필드는 여러 개의 위젯을 가집니다.
+
+텍스트 데이터만을 담고 있는 텍스트필드가 실제 문서의 여러 위치에서 표현될 때는 각기 다른 설정 값을 갖게 됩니다(페이지 번호, 좌표 등). 그래서 하나의 텍스트필드는 여러 위젯을 가질 수 있습니다.
+
+위젯이 표시될 좌표는 `PDRectangle`을 생성해 설정해줍니다. 샘플코드 11~12번째 줄입니다.
+```java
+PDRectangle rect = new PDRectangle(50, 750, 200, 20);
+widget.setRectangle(rect);
+```
+
+어느 페이지에 나올지 설정해주고(샘플코드 13번 째 줄),
+마지막으로 이 위젯을 페이지에 추가해주면 됩니다.
+```java
+page.getAnnotations().add(widget);
+```
+이것도 역시 페이지에 직접 추가하는 것은 아니고 위 코드처럼 해당 페이지`PDPage`가 갖고 있는 주석 정보인 `PDAnnotation`들 중 하나로 추가해주는 것입니다. 이렇게 해야 해당 페이지에서 우리가 만든 `PDAnnotaionWidget`을 갖고 있는 `PDTextField`를 제대로 렌더링할 수 있습니다.
+
+**이렇게 `PDTextField` 생성 및 추가가 완료되었습니다.**
+(박수👏🏾👏🏾👏🏾)
+
+구조가 많이 복잡하죠? 실제 개발 시 메모리 참조까지 고려하면 보기보다 더 복잡합니다.
+
+참고로 `PDTextField`는 `PDTextField` -> `PDVariableText` -> `PDTerminalField` -> `PDField` -> `COSObjectable`의 깊은 상속 계층을 갖고 있는데요, 각 상속 단계 별로 다른 종류의 요소를 제어합니다.
+
+여기서 `PDTextField`가 참조하는 `PDAnnotationWidget`은 이 수많은 부모 중 `PDTerminalField`에서 제어합니다. `PDTextField` 클래스를 눈씻고 찾아봐도 위젯이 어떻게 동작하는지는 찾을 수 없죠.
+
+개인적으로는 각 단계를 나눠놓을 필요가 있는지, 만약 그렇다면 기준이 무엇인지 이해 되지 않았습니다.
+이후 디버깅할 때가 정말 힘들었는데요. 상속이 죄악시되는 이유를 새삼 느낄 수 있었습니다.
+
+# 트러블 슈팅
+사실 저도 `PDFBox`에 대해서 이렇게까지 자세히 알고 싶진 않았습니다(...)
+처음 이 작업을 맡았을 때는 넘겨받은 PDF 관련 유틸리티(wrapper) 코드만 분석해서 데이터 매핑만 하면 되는 줄 알았습니다만.. 원래 코드는 작성할 때보다 디버깅할 때 더 많은 정보들이 필요한 법이죠..!
+
+아래는 제가 직접 겪은 피땀눈물의 트러블 슈팅 경험입니다.
+
+## 폰트 설정이 안먹혀요
+### 해결방법
+만약 위젯을 새로 생성하고 있다면, **위젯을 새로 생성하지 말고 기존 텍스트 필드의 위젯을 가져와서 조작**해야 합니다.
+```java
+PDAnnotationWidget widget = new PDAnnotationWidget() // (X)
+PDAnnotationWidget widget = textField.getWidgets().get(0); // (O)
+```
+기존 코드에서는 텍스트 필드를 생성할 때 새로운 위젯을 생성하여 설정했으나, 이렇게 하면 `textField.setDefaultAppearance`를 사용해도 폰트가 적용되지 않았습니다.
+
+### 이유
+텍스트 필드와 위젯이 서로 참조하는 속성의 메모리 주소가 다르기 때문입니다.
+
+이를 이해하기 위해서는 `COSObject (Catalog of Objects in the PDF Specification)`의 개념을 알아야 합니다. PDFBox에서는 모든 PDF 객체가 `COSObject`를 통해 관리되며 마치 DOM 객체처럼 PDF 내의 객체들이 서로 연결됩니다. 그리고 이 `COSObject`들의 속성은 맵 형태의 `COSDictionary`를 통해 관리됩니다.
+
+텍스트 필드 역시 마찬가지입니다.
+`textField.getWidgets()`라는 메서드를 보니 마치 textField가 위젯 객체들을 갖고 있을 것 같은 느낌이 듭니다만...
+
+실제로는 부모객체인 `PDField`가 갖고 있는 `COSDictionary`를 가져와 이를 참조하는 위젯 리스트를 생성하여 리턴할 뿐입니다.
+아래는 실제 `getWidgets` 코드입니다.
+```java
+// PDTerminalField.class
+@Override
+public List<PDAnnotationWidget> getWidgets() {
+  List<PDAnnotationWidget> widgets = new ArrayList<PDAnnotationWidget>();
+  COSArray kids = (COSArray)getCOSObject().getDictionaryObject(COSName.KIDS);
+  if (kids == null) {
+    // 자식이 없을 경우 자기 자신이 위젯이 됨
+    widgets.add(new PDAnnotationWidget(getCOSObject()));
+    // getCOSObject()는 자신의 COSDictionary를 반환
+  } else if (kids.size() > 0) {
+    // 위젯이 여러개일 때 리턴할 위젯 리스트에 add
+    for (int i = 0; i < kids.size(); i++) {
+      COSBase kid = kids.getObject(i);
+      if (kid instanceof COSDictionary) {
+        widgets.add(new PDAnnotationWidget((COSDictionary)kid));
+      }
+    }
+  }
+  return widgets;
+}
+```
+`PDAnnotationWidget widget = textField.getWidgets().get(0)`가 실행될 때 상속관계를 포함한 전체 그림으로 아래와 같이 표현할 수 있습니다.
+<img src = "https://velog.velcdn.com/images/aryumka/post/b6c6aaad-596d-430c-ae2b-f0a17b58d27e/image.png" width = 400>
+여기서 리턴된 위젯은 기존 텍스트 필드가 현재 참조하고 있는 자기 자신의 `COSDictionary`을 갖고 생성된 위젯이 됩니다. 텍스트 필드와 위젯이 서로 동일한 `COSDictionary`를 참조하므로 같은 속성을 공유하게 됩니다.
+
+반면 `new PDAnnotationWidget()`로 새로 만든 위젯은 기존 텍스트 필드의 속성을 참조하지 않습니다.
+
+이런 상황에서 새로 만든 위젯을 `TextField.setWidgets`으로 추가하더라도 해당 위젯이 텍스트 필드의 자식 위젯으로 추가될 뿐 우리가 원하는 위젯과 동일한 참조를 가지지 않게 됩니다. 아래는 `setWidgets`의 코드입니다.
+  ```java
+// PDTerminalField.class
+public void setWidgets(List<PDAnnotationWidget> children) {
+  COSArray kidsArray = COSArrayList.converterToCOSArray(children);
+  getCOSObject().setItem(COSName.KIDS, kidsArray);
+  for (PDAnnotationWidget widget : children) {
+    widget.getCOSObject().setItem(COSName.PARENT, this);
+  }
+}
+```
+이처럼 텍스트 필드가 참조하는 위젯을 변경해도, 실제 화면에서 표현되는 위젯의 `COSObject`와는 독립적이어서 영향을 주지 않게 되는 것입니다.
+
+## 이거 글자가 짤리는데요(줄바꿈이 안돼요)
+### 해결방법
+multiline 설정을 적용하여 해결합니다. 주의할 점은 텍스트 값을 설정하기 전에 먼저 적용해야 한다는 것입니다.
+  ```java
+textField.setMultiline(true); // 줄바꿈 적용이 먼저!
+textField.setValue("가나다라마바사"); // 실제 텍스트 설정은 이후에 해준다.
+```
+### 이유
+multiline 설정은 텍스트를 직접 바꾸는 것이 아니라 **텍스트 필드의 표시 방식에 대한 상태 플래그를 전환**하는 것 뿐입니다.
+
+해당 설정을 적용하면 해당 텍스트필드의 `COSDictionary`의 비트플래그를 바꿔주게 됩니다. 실제 코드는 아래와 같습니다.
+  ```java
+// COSDictionary.class
+public void setFlag(COSName field, int bitFlag, boolean value) {
+  int currentFlags = getInt(field, 0);
+  if (value) {
+    currentFlags = currentFlags | bitFlag;
+  } else {
+    currentFlags &= ~bitFlag;
+  }
+  setInt(field, currentFlags);
+}
+```
+PDF가 실제 렌더링될 때는 설정된 값`value`을 표현할 때 현재 확인한 플래그에 따라 텍스트를 그립니다. 이 때 multiline 속성이 `false`라면 단일 줄로 표현하게 됩니다.
+  따라서 이후에 텍스트필드의 설정을 바꿔도 플래그 값만 바뀔 뿐 실제 텍스트에 영향을 주지 못하는 것입니다.
+
+## PDF에서 텍스트 수정이 안돼요
+먼저 `widget.setReadOnly(true)` 인지 확인합니다.
+  그게 아니라면 PDF에서 텍스트 필드가 겹쳐있는지 확인합니다. PDF의 렌더링 방식과 관련된 특성 때문에 겹치는 텍스트 필드가 있으면 가장 위에 있는 필드만 상호작용 가능하도록 처리됩니다. 따라서 겹친 필드는 수정이 되지 않을 수 있습니다. 이를 해결하기 위해, 겹치는 텍스트 필드의 크기를 조정하거나 중복된 필드를 삭제해야 합니다.
+
+아래는 기존에 존재하는 필드를 삭제하는 샘플 코드입니다.
+  ```java
+PDTextField existingField = (PDTextField) acroForm.getField(name);
+if (existingField != null) {
+  for (PDAnnotationWidget widget : existingField.getWidgets()) {
+    List<PDAnnotation> annotations = page.getAnnotations();
+    // 위젯이 페이지의 주석 목록에 존재하는지 확인
+    for (PDAnnotation annotation : annotations) {
+    if (annotation instanceof PDAnnotationWidget &&
+        annotation.getCOSObject().equals(widget.getCOSObject())) {
+       // 제거
+       annotations.remove(annotation);
+       break; // 위젯이 제거되었으므로 루프 종료
+     }
+   }
+ }
+ // 필드의 위젯 목록을 비우기
+ existingField.getWidgets().clear();
+```
+기존 코드에서는 PDF에 텍스트 필드를 자동 생성하는 과정에서 필드가 겹치는 문제가 발생했습니다. 반복적으로 텍스트 필드를 추가하기 위해 미리 몇 줄을 매핑해둔 뒤 이를 복사하는 방식으로 필드를 생성했지만, **정적으로 생성된 필드 위에 동적으로 생성된 필드가 겹쳐서 추가**되면서 수정 불가 문제가 발생한 것입니다.
+
+## 폰트 사이즈가 길이에 따라 자동으로 작아지게 해주세요
+  `textField.setDefaultAppearance`에서 font size를 0으로 적용하여 해결합니다.
+
+## 인쇄 하는데 아무것도 안나와요
+  `widget.setPrinted(true);`를 적용하여 해결합니다.
+
+## 이거 이탤릭체로 바꿔주세요
+각 텍스트필드의 DefaultAppearance를 설정할 때 이탤릭체 폰트를 따로 적용해야 합니다. `textfield.setDefaultAppearance`에서 해당 폰트 파일의 경로를 지정하면 됩니다. 참고로 내장되지 않은 폰트를 다로 다운로드하여 지정할 경우 TTF 포맷만 가능합니다.
+
+## 이거 크롬에서 다르게 나와요
+이건 해결 방법이 없습니다.
+  기본적으로 PDF는 워드 파일 등과 다르게 수정이 되지 않는 것이 기본인 포맷입니다. 마치 **종이문서** 처럼요.
+
+여기에 임의로 ~~억지로~~ 텍스트를 입력할 수 있도록(Fillable) 해주는 컴포넌트가 바로 `PDFTextField`죠. 그러나 기본적으로 렌더링이 표준화되어있지 않기 때문에 뷰어마다 다르게 보이게 되는 것입니다.
+
+덧붙여 표준화되어있지 않기에 개발 시 특유의 구조나 사용방법을 파악하기 위한 러닝커브도 높다는 단점이 있습니다. 지금까지 살펴본 것처럼 말이죠.
+
+# 결론
+- 웬만하면 쓰지맙시다. 특히 편집용도로. **유료 소프트웨어**도 대안.
+![](https://velog.velcdn.com/images/aryumka/post/2c54e4db-b149-40e1-b8db-b6320922b9b2/image.png)
+![](https://velog.velcdn.com/images/aryumka/post/17893331-38d1-4eee-be70-55edd9b7fa3d/image.png)
+하지만 돈이 없다면 오픈소스 중에서는 대안 X. 사실 오픈소스 유지보수는 봉사활동에 가깝기 때문에 이나마도 있다는 걸 감사하게 생각..
+- PDF로 해결해야 하는 문제인지 **요구사항에 대해 근본적으로 고민해보시길** 바랍니다.
+- 기본적으로 PDF는 가변적인 텍스트를 제어하기 위한 포맷 X.
+- 최종 결과물이 PDF이면 되는 건지, 반드시 PDF 자체에 입력 가능한 폼을 뚫어야 하는 건지?
+  - 만약 섬세한 텍스트 조정이 또는 서식 자체 조정이 필요하다면 애초에 **PDF가 아닌 워드 파일** 제어 고려 필요.
+- 실제 작업 시에도 그저 종이에 가까운 PDF위에 텍스트가 들어갈 필드 좌표, 크기와 이름을 잡아주기 위해 사람이 수동으로 일일이 매핑 및 수정 미세조정 해줘야 했음 -> 생산성 매우 저하
+- `Apache POI`나 `docx4j` 같은 라이브러리를 사용하면 docx파일 제어 가능.
+- 직접 poc 해본 결과 제어도 훨씬 간단하고 손도 덜 감. 원래부터 편집용인 포맷이니 당연한 부분. ~~하지만 돈으로 해결할 수 있다면 돈으로 해결하자.~~
+  - HTML로 직접 그리는 것도 방법.
+
+- 정 써야겠다면 **`Utility`를 직접 만드는 등 추상화**를 추천 드립니다.
+- 직접 사용하기엔 구조가 너무 복잡.
+- 텍스트 하나 추가하기 위해 모든 요소를 다 알 필요 X.
+- 상속, 부수효과 발생 등 요즘 기준으로는 좋은 설계라고 보기 어려워.
+- 하지만 추상화는 늘 신중해야.
+- 추상화는 쓰는 사람이 편한 것. 추상화를 하는 사람은 고통스러워야. 추상화 하는 사람이 편하면 쓰는 사람이 고통스럽게 되기 때문.
+- **충분한 고민과 함께 밑바닥까지 이해해야 올바른 추상화도 가능!**
+- 언젠가 기회가 닿는다면 사내 공통 PDFUtility를 만들어보고 싶기도 합니다.
+
+
+
