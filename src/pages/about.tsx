@@ -39,10 +39,10 @@ const About = () => {
     <DefaultTemplate>
       <SEO title="About" />
 
-      <h2>💼 Currently working on</h2>
+      <h2>💼 Currently working at</h2>
       <ul>
         <li>
-          <strong>Venture Capital Projects</strong> 2022. 02 ~ <br />
+          <strong>삼쩜삼</strong> 2024. 09 ~ <br />
         </li>
       </ul>
 
