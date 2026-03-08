@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkaryumka_me=self.webpackChunkaryumka_me||[]).push([[1482,1659,3284,4164,4425,4646,4926,6638,7824,8995],{9128:function(n,e,t){t.d(e,{R:function(){return r}});var u=t(9474);const c={},o=u.createContext(c);function r(n){const e=u.useContext(o);return u.useMemo(function(){return"function"==typeof n?n(e):{...e,...n}},[e,n])}}}]);
+//# sourceMappingURL=component---src-posts-2024-04-22-rabbitmq-seven-patterns-mdx-b0c3d0ee9e92597093eb.js.map
