@@ -1,0 +1,72 @@
+---
+interface SeriesItem {
+  slug: string;
+  title: string;
+}
+
+interface Props {
+  title: string;
+  items: SeriesItem[];
+  currentSlug: string;
+}
+
+const { title, items, currentSlug } = Astro.props;
+---
+
+<div class="series">
+  <div class="series-title">{title} 시리즈</div>
+  <ol>
+    {items.map((item, i) => {
+      const isCurrent = item.slug === currentSlug;
+      return (
+        <li class:list={[{ current: isCurrent }]}>
+          {isCurrent ? (
+            <span>{String(i + 1).padStart(2, '0')}. {item.title}</span>
+          ) : (
+            <a href={`/posts/${item.slug}/`}>{String(i + 1).padStart(2, '0')}. {item.title}</a>
+          )}
+        </li>
+      );
+    })}
+  </ol>
+</div>
+
+<style>
+  .series {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 18px 20px;
+  }
+  .series-title {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 12px;
+  }
+  ol {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  li a,
+  li span {
+    font-family: var(--font-sans);
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+  }
+  li a {
+    transition: color 0.2s;
+  }
+  li a:hover {
+    color: var(--ink);
+  }
+  li.current span {
+    color: var(--ink);
+    font-weight: 600;
+  }
+</style>

@@ -1,0 +1,62 @@
+---
+interface Props {
+  pubDate: Date;
+  series?: string;
+  seriesIndex?: number;
+  minutesRead?: number;
+  tags: string[];
+}
+
+const { pubDate, series, seriesIndex, minutesRead, tags } = Astro.props;
+
+const formatDate = (date: Date) =>
+  new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(date);
+---
+
+<div class="meta">
+  <span>{formatDate(pubDate)}</span>
+  {series && (
+    <>
+      <span class="dot">·</span>
+      <span>
+        {series} 시리즈{seriesIndex ? ` · ${String(seriesIndex).padStart(2, '0')}` : ''}
+      </span>
+    </>
+  )}
+  {minutesRead && (
+    <>
+      <span class="dot">·</span>
+      <span>{minutesRead}분 읽기</span>
+    </>
+  )}
+  {tags.length > 0 && (
+    <>
+      <span class="dot">·</span>
+      {tags.map(tag => <span class="tag">{tag.toUpperCase()}</span>)}
+    </>
+  )}
+</div>
+
+<style>
+  .meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--ink-faint);
+  }
+  .dot {
+    opacity: 0.5;
+  }
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.03em;
+    color: var(--chip-ink);
+    background: var(--chip-bg);
+    padding: 3px 7px;
+    border-radius: 3px;
+  }
+</style>

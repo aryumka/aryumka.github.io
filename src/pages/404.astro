@@ -1,0 +1,36 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="404">
+  <section class="page">
+    <h1 class="title">404: Page not found</h1>
+    <img class="art" src="/images/not-found.gif" alt="" />
+    <p class="text">There is nothing here.</p>
+  </section>
+
+  <style>
+    .page {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 80px 24px;
+      text-align: center;
+    }
+    .title {
+      font-family: var(--font-display);
+      font-weight: 400;
+      font-size: 26px;
+      color: var(--ink);
+      margin-bottom: 32px;
+    }
+    .art {
+      width: 100%;
+      border-radius: 6px;
+      margin-bottom: 24px;
+    }
+    .text {
+      font-size: 14px;
+      color: var(--ink-faint);
+    }
+  </style>
+</BaseLayout>

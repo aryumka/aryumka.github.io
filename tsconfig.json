@@ -1,24 +1,12 @@
 {
-  "include": ["./src/**/*", "type.d.ts"],
+  "extends": "astro/tsconfigs/strict",
+  "include": [".astro/types.d.ts", "**/*"],
+  "exclude": ["dist"],
   "compilerOptions": {
-    "target": "esnext",
-    "module": "esnext",
-    "lib": ["dom", "esnext"],
-    "allowJs": true,
-    "jsx": "react",
-    "strict": true,
-    "esModuleInterop": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "noEmit": true,
-    "skipLibCheck": true,
-    "moduleResolution": "node",
-    "baseUrl": "./",
+    "strictNullChecks": true,
+    "baseUrl": ".",
     "paths": {
-      "@components/*": ["./src/components/*"],
-      "@materials/*": ["./src/materials/*"],
-      "@assets/*": ["./src/assets/*"],
-      "@templates/*": ["./src/templates/*"]
+      "@/*": ["./src/*"]
     }
   }
 }

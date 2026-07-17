@@ -1,0 +1,28 @@
+---
+import Social from '@/components/Social.astro';
+---
+
+<footer class="footer">
+  <Social />
+  <a href="/about" class="copyright">aryumka.me | devlog by Areum Yoo</a>
+</footer>
+
+<style>
+  .footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 56px 24px 64px;
+    text-align: center;
+  }
+  .copyright {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    transition: color 0.2s;
+  }
+  .copyright:hover {
+    color: var(--ink);
+  }
+</style>

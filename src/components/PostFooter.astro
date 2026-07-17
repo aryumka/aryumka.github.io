@@ -1,0 +1,54 @@
+---
+import PostBio from '@/components/PostBio.astro';
+import Giscus from '@/components/Giscus.astro';
+
+interface Props {
+  tags: string[];
+  showComments?: boolean;
+}
+
+const { tags, showComments = true } = Astro.props;
+---
+
+<div class="post-footer">
+  {tags.length > 0 && (
+    <div class="tags">
+      {tags.map(tag => <span class="tag">{tag.toUpperCase()}</span>)}
+    </div>
+  )}
+
+  <PostBio />
+
+  {showComments && (
+    <div class="comments">
+      <Giscus />
+    </div>
+  )}
+</div>
+
+<style>
+  .post-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.03em;
+    color: var(--chip-ink);
+    background: var(--chip-bg);
+    padding: 4px 8px;
+    border-radius: 3px;
+  }
+  .comments {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+  }
+</style>

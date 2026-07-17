@@ -1,0 +1,60 @@
+---
+interface Props {
+  src: string;
+  caption?: string;
+  width?: number;
+  expandable?: boolean;
+}
+
+const { src, caption, width, expandable = false } = Astro.props;
+const dialogId = `img-dialog-${Math.random().toString(36).slice(2, 9)}`;
+---
+
+<figure>
+  <img
+    src={src}
+    width={width}
+    class:list={[{ expandable }]}
+    data-dialog={expandable ? dialogId : undefined}
+  />
+  {caption && <figcaption set:html={caption} />}
+  {expandable && (
+    <dialog id={dialogId} class="lightbox">
+      <img src={src} alt="" />
+    </dialog>
+  )}
+</figure>
+
+<style>
+  img.expandable {
+    cursor: zoom-in;
+  }
+  .lightbox {
+    max-width: 90vw;
+    max-height: 90vh;
+    border: none;
+    border-radius: 6px;
+    padding: 0;
+    background: transparent;
+  }
+  .lightbox::backdrop {
+    background: rgba(0, 0, 0, 0.7);
+  }
+  .lightbox img {
+    display: block;
+    width: 100%;
+    height: auto;
+    cursor: zoom-out;
+  }
+</style>
+
+{expandable && (
+  <script>
+    document.querySelectorAll('img[data-dialog]').forEach(img => {
+      const dialog = document.getElementById(img.dataset.dialog);
+      if (!dialog) return;
+      img.addEventListener('click', () => dialog.showModal());
+      dialog.addEventListener('click', () => dialog.close());
+    });
+  </script>
+)}

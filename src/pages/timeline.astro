@@ -1,0 +1,43 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import PostList from '@/components/PostList.astro';
+
+const posts = (await getCollection('blog', ({ data }) => !data.draft && !data.hide))
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+  .map(post => ({
+    slug: post.id,
+    title: post.data.title,
+    pubDate: post.data.pubDate,
+    series: post.data.series,
+    tags: post.data.tags
+  }));
+---
+
+<BaseLayout title="Timeline" description="모든 글">
+  <section class="page">
+    <h1 class="page-title">Timeline</h1>
+    <PostList items={posts} />
+  </section>
+
+  <style>
+    .page {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 56px 24px 96px;
+    }
+    .page-title {
+      font-family: var(--font-display);
+      font-weight: 400;
+      font-size: 30px;
+      color: var(--ink);
+      margin-bottom: 32px;
+    }
+
+    @media (max-width: 640px) {
+      .page {
+        padding: 40px 20px 64px;
+      }
+    }
+  </style>
+</BaseLayout>

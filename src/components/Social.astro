@@ -1,0 +1,32 @@
+---
+const items = [
+  { icon: 'github', href: 'https://github.com/aryumka', label: 'GitHub' },
+  { icon: 'envelope', href: 'mailto:yooooar@gmail.com', label: 'Email' },
+  { icon: 'rss-square', href: '/feed.xml', label: 'RSS' }
+];
+---
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+
+<span class="social">
+  {items.map(item => (
+    <a href={item.href} target={item.href.startsWith('http') ? '_blank' : undefined} rel="noreferrer" aria-label={item.label}>
+      <i class={`fa fa-${item.icon}`} aria-hidden="true"></i>
+    </a>
+  ))}
+</span>
+
+<style>
+  .social {
+    display: inline-flex;
+    gap: 14px;
+  }
+  .social a {
+    color: var(--ink-faint);
+    font-size: 14px;
+    transition: color 0.2s;
+  }
+  .social a:hover {
+    color: var(--ink);
+  }
+</style>

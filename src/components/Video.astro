@@ -1,0 +1,36 @@
+---
+interface Props {
+  src: string;
+  caption?: string;
+  width?: number;
+  autoPlay?: boolean;
+  controls?: boolean;
+  muted?: boolean;
+  loop?: boolean;
+  playsInline?: boolean;
+}
+
+const {
+  src,
+  caption,
+  width,
+  autoPlay = false,
+  controls = true,
+  muted = false,
+  loop = false,
+  playsInline = true
+} = Astro.props;
+---
+
+<figure>
+  <video
+    src={src}
+    width={width}
+    autoplay={autoPlay}
+    controls={controls}
+    muted={muted}
+    loop={loop}
+    playsinline={playsInline}
+  />
+  {caption && <figcaption set:html={caption} />}
+</figure>

@@ -1,0 +1,101 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import PostList from '@/components/PostList.astro';
+
+const posts = (await getCollection('blog', ({ data }) => !data.draft && !data.hide))
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+  .slice(0, 8)
+  .map(post => ({
+    slug: post.id,
+    title: post.data.title,
+    pubDate: post.data.pubDate,
+    series: post.data.series,
+    tags: post.data.tags
+  }));
+---
+
+<BaseLayout>
+  <section class="bio">
+    <img class="avatar" src="/images/about/avatar.jpeg" alt="Areum Yoo" />
+    <div>
+      <div class="name">Areum Yoo</div>
+      <div class="role">Backend Developer</div>
+    </div>
+  </section>
+
+  <section class="recent">
+    <div class="recent-head">
+      <span class="label">Recent</span>
+      <a class="more" href="/timeline">Timeline 전체보기<span class="chevron" /></a>
+    </div>
+    <PostList items={posts} />
+  </section>
+
+  <style>
+    .bio {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 64px 24px 40px;
+    }
+    .avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      border: 1px solid var(--line-strong);
+      object-fit: cover;
+    }
+    .name {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .role {
+      font-size: 13.5px;
+      color: var(--ink-faint);
+      margin-top: 4px;
+    }
+
+    .recent {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 0 24px 96px;
+    }
+    .recent-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+    .label {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+    }
+    .more {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12.5px;
+      color: var(--ink-soft);
+      transition: color 0.2s;
+    }
+    .more:hover {
+      color: var(--ink);
+    }
+
+    @media (max-width: 640px) {
+      .bio {
+        padding: 48px 20px 32px;
+      }
+      .recent {
+        padding: 0 20px 64px;
+      }
+    }
+  </style>
+</BaseLayout>
