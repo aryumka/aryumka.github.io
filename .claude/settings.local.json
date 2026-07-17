@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(brew list gh 2>/dev/null && which gh || echo \"gh not installed\")",
+      "Bash(brew install gh 2>&1 | tail -5)",
+      "Bash(pnpm run build 2>&1 | tail -20)",
+      "Bash(pnpm run build 2>&1 | tail -10)",
+      "Bash(git add src/posts/2024-11-10-pdf-box-deepdive.mdx && git commit -m \"$\\(cat <<'EOF'\nfix unquoted img width attribute in pdf-box-deepdive post\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\" && git push origin develop)",
+      "Bash(curl:*)",
+      "Bash(NVM_DIR=\"/Users/areum/.nvm\" bash -c '. \"$NVM_DIR/nvm.sh\" 2>/dev/null; cd /Users/areum/own/new-blog && npm run build' 2>&1)"
+    ]
+  }
+}
