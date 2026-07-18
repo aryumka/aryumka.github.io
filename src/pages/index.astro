@@ -16,14 +16,6 @@ const posts = (await getCollection('blog', ({ data }) => !data.draft && !data.hi
 ---
 
 <BaseLayout>
-  <section class="bio">
-    <img class="avatar" src="/images/about/avatar.jpeg" alt="Areum Yoo" />
-    <div>
-      <div class="name">Areum Yoo</div>
-      <div class="role">Backend Developer</div>
-    </div>
-  </section>
-
   <section class="recent">
     <div class="recent-head">
       <span class="label">Recent</span>
@@ -33,36 +25,10 @@ const posts = (await getCollection('blog', ({ data }) => !data.draft && !data.hi
   </section>
 
   <style>
-    .bio {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      max-width: 640px;
-      margin: 0 auto;
-      padding: 64px 24px 40px;
-    }
-    .avatar {
-      width: 72px;
-      height: 72px;
-      border-radius: 50%;
-      border: 1px solid var(--line-strong);
-      object-fit: cover;
-    }
-    .name {
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--ink);
-    }
-    .role {
-      font-size: 13.5px;
-      color: var(--ink-faint);
-      margin-top: 4px;
-    }
-
     .recent {
-      max-width: 640px;
+      max-width: 720px;
       margin: 0 auto;
-      padding: 0 24px 96px;
+      padding: 64px 24px 96px;
     }
     .recent-head {
       display: flex;
@@ -90,11 +56,8 @@ const posts = (await getCollection('blog', ({ data }) => !data.draft && !data.hi
     }
 
     @media (max-width: 640px) {
-      .bio {
-        padding: 48px 20px 32px;
-      }
       .recent {
-        padding: 0 20px 64px;
+        padding: 48px 20px 64px;
       }
     }
   </style>

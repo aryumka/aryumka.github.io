@@ -18,8 +18,11 @@ const pageTitle = title ? `${title} | ${SITE_NAME}` : SITE_TITLE;
     <BaseHead title={pageTitle} description={description} />
   </head>
   <body>
+    <a href="#main-content" class="skip-link" tabindex="0">본문으로 건너뛰기</a>
     <Header />
-    <slot />
+    <main id="main-content" tabindex="-1">
+      <slot />
+    </main>
     <Footer />
   </body>
 </html>

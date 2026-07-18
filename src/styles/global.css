@@ -99,6 +99,24 @@ video {
   height: auto;
 }
 
+.skip-link {
+  display: block;
+  max-height: 0;
+  overflow: hidden;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  transition: max-height 0.2s;
+}
+.skip-link:focus-visible {
+  max-height: 48px;
+  padding: 14px;
+  outline: 2px solid var(--bg);
+  outline-offset: -4px;
+}
+
 .sr-only {
   position: absolute !important;
   height: 1px;

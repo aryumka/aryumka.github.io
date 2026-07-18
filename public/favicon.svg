@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#18170f"/>
+  <path d="
+    M 256 132
+    L 366 380
+    L 322 380
+    L 296 320
+    L 216 320
+    L 190 380
+    L 146 380
+    Z
+    M 256 208
+    L 232 264
+    L 280 264
+    Z
+  " fill="#e7e3d6" fill-rule="evenodd"/>
+</svg>

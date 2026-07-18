@@ -66,9 +66,10 @@ const seriesIndex = seriesItems?.findIndex(item => item.slug === slug);
     />
   </head>
   <body>
+    <a href="#main-content" class="skip-link" tabindex="0">본문으로 건너뛰기</a>
     <Header />
 
-    <div class="shell">
+    <div class="shell" id="main-content" tabindex="-1">
       <article class="content-col">
         <header class="article-header">
           <PostMeta
@@ -80,8 +81,6 @@ const seriesIndex = seriesItems?.findIndex(item => item.slug === slug);
           />
           <h1 class="title">{title}</h1>
         </header>
-
-        {heroImage && <img class="hero" src={heroImage} alt="" />}
 
         {seriesItems && seriesItems.length > 1 && (
           <SeriesNav title={series ?? ''} items={seriesItems} currentSlug={slug} />
@@ -122,18 +121,10 @@ const seriesIndex = seriesItems?.findIndex(item => item.slug === slug);
 
     <style>
       .shell {
-        display: grid;
-        grid-template-columns: minmax(0, 680px);
-        justify-content: center;
-        gap: 40px;
-        max-width: 1160px;
+        position: relative;
+        max-width: 720px;
         margin: 0 auto;
         padding: 48px 24px 32px;
-      }
-      @media (min-width: 1240px) {
-        .shell {
-          grid-template-columns: minmax(0, 680px) 200px;
-        }
       }
       .toc-col {
         display: none;
@@ -141,6 +132,11 @@ const seriesIndex = seriesItems?.findIndex(item => item.slug === slug);
       @media (min-width: 1240px) {
         .toc-col {
           display: block;
+          position: absolute;
+          top: 48px;
+          left: 100%;
+          margin-left: 40px;
+          width: 200px;
         }
       }
 
@@ -156,16 +152,7 @@ const seriesIndex = seriesItems?.findIndex(item => item.slug === slug);
         font-size: clamp(26px, 3.6vw, 36px);
         line-height: 1.4;
         color: var(--ink);
-        text-wrap: balance;
       }
-      .hero {
-        display: block;
-        width: 100%;
-        border-radius: 6px;
-        margin-bottom: 32px;
-        border: 1px solid var(--line);
-      }
-
       .content-col > * + * {
         margin-top: 32px;
       }

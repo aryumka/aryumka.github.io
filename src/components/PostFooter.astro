@@ -1,5 +1,4 @@
 ---
-import PostBio from '@/components/PostBio.astro';
 import Giscus from '@/components/Giscus.astro';
 
 interface Props {
@@ -16,8 +15,6 @@ const { tags, showComments = true } = Astro.props;
       {tags.map(tag => <span class="tag">{tag.toUpperCase()}</span>)}
     </div>
   )}
-
-  <PostBio />
 
   {showComments && (
     <div class="comments">
