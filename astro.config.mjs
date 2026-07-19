@@ -4,6 +4,7 @@ import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
 import { defineConfig } from 'astro/config';
 import remarkGfm from 'remark-gfm';
+import remarkCjkFriendly from 'remark-cjk-friendly';
 import { toString } from 'mdast-util-to-string';
 import getReadingTime from 'reading-time';
 
@@ -75,7 +76,10 @@ export default defineConfig({
   site: 'https://aryumka.me',
   integrations: [mdx(), sitemap()],
   markdown: {
-    remarkPlugins: [remarkGfm, remarkReadingTime],
+    // remark-cjk-friendly relaxes CommonMark's emphasis flanking rules so
+    // `**...(괄호)**한글` style bold — punctuation adjacent to CJK text —
+    // parses correctly instead of rendering literal asterisks.
+    remarkPlugins: [remarkCjkFriendly, remarkGfm, remarkReadingTime],
     shikiConfig: {
       theme: codeTheme,
       wrap: true
