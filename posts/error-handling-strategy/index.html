@@ -84,7 +84,7 @@ Timeline
 
 
 <table><thead><tr><th>실패 시나리오</th><th>분류</th><th>이유</th></tr></thead><tbody><tr><td>고객 없음/비활성</td><td><strong>BusinessError</strong></td><td>고객 상태에 따른 예측된 케이스</td></tr><tr><td>주문 이미 처리 중</td><td><strong>BusinessError</strong></td><td>상태 규칙 위반</td></tr><tr><td>기능 비활성화</td><td><strong>BusinessError</strong></td><td>설정에 따른 예측된 케이스</td></tr><tr><td>장바구니 비어있음</td><td><strong>BusinessError</strong></td><td>데이터 상태에 따른 예측된 케이스</td></tr><tr><td>PG사 통신 오류</td><td><strong>InfraException</strong></td><td>외부 시스템 일시적 장애</td></tr><tr><td>재고 시스템 오류</td><td><strong>InfraException</strong></td><td>인프라 장애</td></tr><tr><td>결제 로직 오류</td><td><strong>InfraException</strong></td><td>코드 버그로 인한 오류</td></tr></tbody></table>
-<p>“결제 로직 오류”의 분류는 실무에서 가장 경계가 모호한 지점이다. “잔액 부족”이나 “한도 초과”는 BusinessError지만 “결제 데이터 직렬화 실패”는 코드 버그다. 위 5번 항목의 세 가지 결제 오류 중 이 “결제 로직 오류”를 코드에서는 <code>PaymentLogicException</code>으로 표현한다. <strong>비즈니스 규칙 위반이 아닌 결제 모듈 내부의 기술적 오류</strong>다. 분류가 애매한 경우, **클라이언트가 요청을 수정하면 성공할 수 있는가?**를 기준으로 판단하면 된다. “잔액 부족”은 충전 후 재요청하면 성공하므로 BusinessError다. “결제 데이터 직렬화 실패”는 클라이언트가 뭘 바꾸든 서버 코드가 수정되기 전까지 같은 결과이므로 InfraException이다.</p>
+<p>“결제 로직 오류”의 분류는 실무에서 가장 경계가 모호한 지점이다. “잔액 부족”이나 “한도 초과”는 BusinessError지만 “결제 데이터 직렬화 실패”는 코드 버그다. 위 5번 항목의 세 가지 결제 오류 중 이 “결제 로직 오류”를 코드에서는 <code>PaymentLogicException</code>으로 표현한다. <strong>비즈니스 규칙 위반이 아닌 결제 모듈 내부의 기술적 오류</strong>다. 분류가 애매한 경우, <strong>클라이언트가 요청을 수정하면 성공할 수 있는가?</strong>를 기준으로 판단하면 된다. “잔액 부족”은 충전 후 재요청하면 성공하므로 BusinessError다. “결제 데이터 직렬화 실패”는 클라이언트가 뭘 바꾸든 서버 코드가 수정되기 전까지 같은 결과이므로 InfraException이다.</p>
 <p>그리고 목록에 없는 것 — 대표적으로 NPE — 은 <strong>Unknown</strong>으로 분류한다.</p>
 
 

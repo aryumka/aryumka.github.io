@@ -15,7 +15,7 @@ Timeline
 <li>언제 어떤 예외를 던져야 하는지, 커스텀 예외는 얼마나 만들어 써야 할지 명확한 기준이 없었다.</li>
 </ul>
 <h1 id="1-서론">1. 서론</h1>
-<p>한가로운 주말 아침, 유튜브 알고리즘이 날 한 영상으로 이끌었다. 왜 리눅스의 창시자인 리누스 토르발즈가 커널 개발에 C++를 극도로 반대하는지에 대한 영상이었다. <a href="https://yarchive.net/comp/linux/c++.html"><strong>리누스 토르발즈의 C++ 혐오</strong></a>는 유명한데, 그는 심지어 C++가 <strong>근본적으로 잘못된 언어</strong>라며 대표적인 예로 **예외 처리(Exception Handling)**를 들었다.</p>
+<p>한가로운 주말 아침, 유튜브 알고리즘이 날 한 영상으로 이끌었다. 왜 리눅스의 창시자인 리누스 토르발즈가 커널 개발에 C++를 극도로 반대하는지에 대한 영상이었다. <a href="https://yarchive.net/comp/linux/c++.html"><strong>리누스 토르발즈의 C++ 혐오</strong></a>는 유명한데, 그는 심지어 C++가 <strong>근본적으로 잘못된 언어</strong>라며 대표적인 예로 <strong>예외 처리(Exception Handling)</strong>를 들었다.</p>
 <blockquote>
 <p>C++의 예외 처리는 근본적으로 망가졌다. 특히 커널 개발용으로는 아예 박살이 나 있다.
 (<em>the whole C++ exception handling thing is fundamentally broken. It’s <strong>especially</strong> broken for kernels.</em>)</p>
@@ -135,7 +135,7 @@ Timeline
 <p>즉, 예외를 아예 안던질 순 없다. 프로그램 부팅 시 포트가 이미 사용 중이라면? 그냥 던져버리고 프로그램을 종료하는 게 맞다.</p>
 <p>하지만 찾고 있는 유저의 ID가 DB에 없는 상황이라면? 입력한 날짜가 유효하지 않는 날짜라면? 이건 천재지변보다는 완벽하게 예상 가능한 비즈니스 케이스에 가깝다.</p>
 <h2 id="값으로서의-예외">값으로서의 예외</h2>
-<p><strong>함수형 프로그래밍</strong>에서는 예외 던지기를 **부수 효과<code>side effect</code>**라고 여긴다.
+<p><strong>함수형 프로그래밍</strong>에서는 예외 던지기를 <strong>부수 효과<code>side effect</code></strong>라고 여긴다.
 부수효과는 함수가 결과를 리턴하는 것 이외에 다른 일을 하는 행위를 뜻한다. 참조투명성과 순수성을 보장하기 위해서는 실행 중 잘못된 상황이 발생해도 제어 흐름에 영향이 없어야 한다.</p>
 <p>그래서 값으로 예외를 리턴한다.</p>
 <p>그렇다면 <code>false</code>나 <code>-1</code> 등의 에러 값을 표현하는 <strong>절차적 프로그래밍</strong>과 무엇이 다를까? 가장 큰 특징은 유효하지 않은 값이라는 것을 컴파일 단계에서 명확하게 알 수 있다는 점이다.</p>
