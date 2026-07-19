@@ -1,6 +1,6 @@
 ---
 import '@/styles/global.css';
-import { AUTHOR, GA_MEASUREMENT_ID, SITE_TITLE } from '@/consts';
+import { AUTHOR, SITE_TITLE } from '@/consts';
 
 interface Props {
   title: string;
@@ -58,14 +58,3 @@ const imageURL = new URL(image, Astro.site);
 <meta name="twitter:title" content={title} />
 <meta name="twitter:description" content={description} />
 <meta name="twitter:image" content={imageURL} />
-
-<!-- Analytics -->
-<script async src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}></script>
-<script define:vars={{ GA_MEASUREMENT_ID }}>
-  window.dataLayer = window.dataLayer || [];
-  function gtag() {
-    dataLayer.push(arguments);
-  }
-  gtag('js', new Date());
-  gtag('config', GA_MEASUREMENT_ID);
-</script>
